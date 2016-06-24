@@ -1,49 +1,37 @@
-package ota
+package transport
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 )
 
-const testHex = "../test_files/test.hex"
+const nodeControlRequestHex = "../test_files/1/1/firmware.hex"
 
-func TestLoadFirmware(t *testing.T) {
-	firmware := Firmware{}
-	firmware.Load(testHex)
+func defaultTestControl() *Control {
+	return &NewMQTT("_test_config.yaml").Control
+}
 
-	if firmware.Blocks != 80 {
-		t.Error("Expected 80 blocks")
-	}
+func TestControlIDRequest(t *testing.T) {
+	myControl := defaultTestControl()
 
-	if firmware.Crc != 18132 {
-		t.Error("Expected a crc of 18132")
+	expected := "13"
+	if actual := myControl.IDRequest(); actual != expected {
+		t.Errorf("Wrong payload - Actual: %s Expected: %s\n", actual, expected)
 	}
 }
 
-func TestConfigurationRequest(t *testing.T) {
-	that := Configuration{}
-	that.Load("010001005000D446")
+func TestControlConfigurationRequest(t *testing.T) {
+	myControl := defaultTestControl()
 
-	if that.Type != 1 {
-		t.Error("Expected type 1")
-	}
-
-	if that.Version != 1 {
-		t.Error("Expected version 1")
-	}
-
-	if that.Blocks != 80 {
-		t.Error("Expected blocks of 80")
-	}
-
-	if that.Crc != 18132 {
-		t.Error("Expected a crc of 18132")
+	expected := "010001005000D446"
+	if actual := myControl.ConfigurationRequest("1", "010001005000D446"); actual != expected {
+		t.Errorf("Wrong payload - Actual: %s Expected: %s\n", actual, expected)
 	}
 }
 
-func TestDataRequest(t *testing.T) {
-	firmware := Firmware{}
-	firmware.Load(testHex)
+func TestControlDataRequest(t *testing.T) {
+	myControl := defaultTestControl()
 
 	max := uint16(80)
 	payloads := [...]string{
@@ -135,16 +123,35 @@ func TestDataRequest(t *testing.T) {
 		if len(blockHex) == 1 {
 			blockHex = "0" + blockHex
 		}
-		incoming := "01000100" + blockHex + "00"
+		request := strings.Join([]string{"01000100", blockHex, "00"}, "")
 
-		r := Data{}
-		r.Load(incoming)
-
-		got := r.String(firmware.GetBlock(block))
 		expected := payloads[i]
-
-		if got != expected {
-			t.Error("Payloads did not match")
+		if actual := myControl.DataRequest("1", request); actual != expected {
+			t.Errorf("Payload does not match. Actual: %s. Expected: %s.", actual, expected)
 		}
+	}
+}
+
+func TestControlFirmwareInfoByNode(t *testing.T) {
+	myControl := defaultTestControl()
+
+	if typ, ver, filename, fwType := myControl.FirmwareInfo("1", "5", "1"); typ != "1" || ver != "1" || filename != nodeRequestHex || fwType != FWNode {
+		t.Errorf("Node: Unexpected node-based type/version/filename: %s, %s, %s", typ, ver, filename)
+	}
+}
+
+func TestContorlFirmwareInfoByRequest(t *testing.T) {
+	myControl := defaultTestControl()
+
+	if typ, ver, filename, fwType := myControl.FirmwareInfo("254", "1", "1"); typ != "1" || ver != "1" || filename != nodeRequestHex || fwType != FWReq {
+		t.Errorf("Request: Unexpected request-based type/version/filename: %s, %s, %s", typ, ver, filename)
+	}
+}
+
+func TestControlFirmwareInfoByDefault(t *testing.T) {
+	myControl := defaultTestControl()
+
+	if typ, ver, filename, fwType := myControl.FirmwareInfo("254", "254", "254"); typ != "1" || ver != "1" || filename != nodeRequestHex || fwType != FWDefault {
+		t.Errorf("Default: Unexpected default type/version/filename: %s, %s, %s", typ, ver, filename)
 	}
 }

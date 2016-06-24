@@ -7,15 +7,16 @@ import (
 	"strings"
 )
 
-// Data - The MySysBootloader Firmware Config Request
-type Data struct {
+// Configuration - The MySysBootloader Firmware Config Request
+type Configuration struct {
 	Type    uint16
 	Version uint16
-	Block   uint16
+	Blocks  uint16
+	Crc     uint16
 }
 
 // Load - Loads a string; computes type/version/blocks/crc
-func (t *Data) Load(payload string) error {
+func (t *Configuration) Load(payload string) error {
 	b, err := hex.DecodeString(payload)
 	if err != nil {
 		return err
@@ -25,13 +26,11 @@ func (t *Data) Load(payload string) error {
 	return binary.Read(r, binary.LittleEndian, t)
 }
 
-func (t *Data) String(input []byte) string {
+func (t *Configuration) String() string {
 	w := new(bytes.Buffer)
 	if err := binary.Write(w, binary.LittleEndian, t); err != nil {
-		return ""
+		return "0000000000000000"
 	}
 
-	base := hex.EncodeToString(w.Bytes())
-	data := hex.EncodeToString(input)
-	return strings.ToUpper(base + data)
+	return strings.ToUpper(hex.EncodeToString(w.Bytes()))
 }

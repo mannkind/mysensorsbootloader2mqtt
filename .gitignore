@@ -1,7 +1,3 @@
-bin
-pkg
-src/git.eclipse.org
-src/golang.org
-src/gopkg.in
-src/github.com/stretchr
-./mysb
+mysb
+mysb_ota
+config.yaml

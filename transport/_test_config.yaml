@@ -1,0 +1,6 @@
+control:
+    nextid: 12
+    firmwarebasepath: '../test_files'
+    nodes:
+        default: { type: 1, version: 1 } 
+        1: { type: 1, version: 1 }
