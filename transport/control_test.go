@@ -155,3 +155,42 @@ func TestControlFirmwareInfoByDefault(t *testing.T) {
 		t.Errorf("Default: Unexpected default type/version/filename: %s, %s, %s", typ, ver, filename)
 	}
 }
+
+func TestControlFirmwareInfoByUnknown(t *testing.T) {
+	myControl := defaultTestControl()
+	delete(myControl.Nodes, "default")
+
+	if typ, ver, filename, fwType := myControl.FirmwareInfo("254", "254", "254"); typ != "0" || ver != "0" || filename != "" || fwType != FWUnknown {
+		t.Errorf("Default: Unexpected unknown type/version/filename: %s, %s, %s", typ, ver, filename)
+	}
+}
+
+func TestControlBootloaderCmd(t *testing.T) {
+	var tests = []struct {
+		To      string
+		Cmd     string
+		Payload string
+		Type    uint16
+		Version uint16
+	}{
+		{"1", "1", "", 1, 0},
+		{"2", "2", "9", 2, 9},
+	}
+
+	for _, v := range tests {
+		myControl := defaultTestControl()
+		myControl.BootloaderCommand(v.To, v.Cmd, v.Payload)
+		if cmd, ok := myControl.Commands[v.To]; !ok {
+			t.Error("Bootloader command not found")
+		} else if cmd.Type != v.Type || cmd.Version != v.Version || cmd.Blocks != 0 {
+			t.Error("Bootloader command not loaded correctly")
+		}
+	}
+}
+
+func TestParseUint16(t *testing.T) {
+	myControl := defaultTestControl()
+	if _, err := myControl.parseUint16("99999999"); err == nil {
+		t.Error("The number was not a valid uint16 and should have errored.")
+	}
+}

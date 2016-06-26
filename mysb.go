@@ -1,8 +1,16 @@
 package main
 
-import "github.com/mannkind/mysb/transport"
+import (
+	"flag"
+	"github.com/mannkind/mysb/transport"
+)
 
 func main() {
-	mqtt := *transport.NewMQTT("config.yaml")
-	mqtt.Loop()
+	c := flag.String("c", "config.yaml", "/the/path/to/config.yaml")
+	flag.Parse()
+
+	mqtt := *transport.NewMQTT(*c)
+	mqtt.ConSub()
+
+	select {}
 }

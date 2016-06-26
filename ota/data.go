@@ -27,10 +27,7 @@ func (t *Data) Load(payload string) error {
 
 func (t *Data) String(input []byte) string {
 	w := new(bytes.Buffer)
-	if err := binary.Write(w, binary.LittleEndian, t); err != nil {
-		return "0000000000000000000000000000000000000000000"
-	}
-
+	binary.Write(w, binary.LittleEndian, t)
 	return strings.ToUpper(
 		strings.Join(
 			[]string{hex.EncodeToString(w.Bytes()), hex.EncodeToString(input)},

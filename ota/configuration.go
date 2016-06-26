@@ -28,9 +28,6 @@ func (t *Configuration) Load(payload string) error {
 
 func (t *Configuration) String() string {
 	w := new(bytes.Buffer)
-	if err := binary.Write(w, binary.LittleEndian, t); err != nil {
-		return "0000000000000000"
-	}
-
+	binary.Write(w, binary.LittleEndian, t)
 	return strings.ToUpper(hex.EncodeToString(w.Bytes()))
 }

@@ -58,6 +58,54 @@ func TestMqttDataRequest(t *testing.T) {
 	}
 }
 
+func TestMqttBootloaderCommand(t *testing.T) {
+	myMQTT := defaultTestMQTT()
+	var tests = []struct {
+		To              string
+		Cmd             string
+		Payload         string
+		ExpectedPayload string
+	}{
+		{"1", "1", "", "0100000000007ADA"},
+		{"2", "2", "9", "0200090000007ADA"},
+	}
+
+	for _, v := range tests {
+		msg := &mockMessage{
+			topic:   fmt.Sprintf("mysensors/bootloader/%s/%s", v.To, v.Cmd),
+			payload: []byte(v.Payload),
+		}
+
+		myMQTT.bootloaderCommand(testClient, msg)
+		if _, ok := myMQTT.Control.Commands[v.To]; !ok {
+			t.Error("Bootloader command not found")
+		} else {
+			if ok := myMQTT.runBootloaderCommand(testClient, v.To); !ok {
+				t.Error("Bootloader command not run")
+			} else {
+				expected := fmt.Sprintf("%s/%s/255/4/0/1 %s", myMQTT.Settings.PubTopic, v.To, v.ExpectedPayload)
+				if myMQTT.LastPublished != expected {
+					t.Errorf("Wrong topic or payload - Actual: %s, Expected: %s", myMQTT.LastPublished, expected)
+				}
+			}
+		}
+	}
+}
+
+func TestMqttBadBootloaderCommand(t *testing.T) {
+	myMQTT := defaultTestMQTT()
+	if ok := myMQTT.runBootloaderCommand(testClient, "1"); ok {
+		t.Error("Bootloader command didn't exist, should not have returned true")
+	}
+}
+
+func TestMqttConSub(t *testing.T) {
+	myMQTT := defaultTestMQTT()
+	if err := myMQTT.ConSub(); err != nil {
+		t.Error("Something went wrong connecting and subscribing!")
+	}
+}
+
 type mockMessage struct {
 	topic   string
 	payload []byte

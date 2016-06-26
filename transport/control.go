@@ -1,8 +1,8 @@
 package transport
 
 import (
-	"github.com/mannkind/mysb/ota"
 	"fmt"
+	"github.com/mannkind/mysb/ota"
 	"log"
 	"os"
 	"strconv"
@@ -147,6 +147,9 @@ func (c *Control) BootloaderCommand(to string, cmd string, payload string) {
 	}
 
 	log.Printf("Bootloader Command: To: %s Cmd: %s Payload: %s\n", to, cmd, payload)
+	if c.Commands == nil {
+		c.Commands = make(map[string]ota.Configuration)
+	}
 	c.Commands[to] = resp
 }
 

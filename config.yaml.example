@@ -1,0 +1,36 @@
+settings:
+    clientid: 'GoMySysBootloader'
+    broker:   'tcp://mosquitto:1883'
+    subtopic: 'mysensors_rx'
+    pubtopic: 'mysensors_tx'
+
+control:
+    nextid: 1
+    firmwarebasepath: '/Data/mysb/firmware'
+    nodes:
+        default: {
+            type: 1,
+            version: 1
+        }
+        1: { type: 1, version: 1 }
+        2: { type: 3, version: 1 }
+        3: { type: 1, version: 2 }
+        4: { type: 1, version: 1 }
+        5: { type: 2, version: 3 }
+
+    # Not used in Mysb - for reference only
+    types:
+      1: 'Temperature Monitor'
+      2: 'Door Monitor'
+      3: 'Plant Monitor'
+      4: 'Garage Actuator'
+      5: 'Energy Monitor'
+      6: 'Glass Break Monitor'
+      7: 'Fireplace Actuator'
+      8: 'Signing Setup'
+      9: 'AC Actuator'
+
+    versions:
+      1: '1.5.1'
+      2: '1.5.4'
+      3: '2.0.0-beta'

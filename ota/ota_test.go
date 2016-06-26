@@ -21,9 +21,14 @@ func TestLoadFirmware(t *testing.T) {
 	}
 }
 
-func TestConfigurationRequest(t *testing.T) {
+func TestBadConfigurationRequest(t *testing.T) {
 	c := Configuration{}
+	if err := c.Load("0Z00000000000000"); err == nil {
+		t.Error("Z is not a valid hexidecmial character and should have errored.")
+	}
+}
 
+func TestConfigurationRequest(t *testing.T) {
 	var tests = []struct {
 		Hex     string
 		Type    uint16
@@ -38,6 +43,7 @@ func TestConfigurationRequest(t *testing.T) {
 	}
 
 	for _, v := range tests {
+		c := Configuration{}
 		c.Load(v.Hex)
 
 		if c.Type != v.Type {
@@ -56,9 +62,16 @@ func TestConfigurationRequest(t *testing.T) {
 			t.Errorf("Crc does not match. Actual: %d. Expected %d.", c.Crc, v.Crc)
 		}
 
-        if c.String() != v.Hex {
-			t.Errorf("Hex does not match. Actual: %d. Expected %d.", c.String(), v.Hex)
-        }
+		if c.String() != v.Hex {
+			t.Errorf("Hex does not match. Actual: %s. Expected %s.", c.String(), v.Hex)
+		}
+	}
+}
+
+func TestBadDataRequest(t *testing.T) {
+	c := Data{}
+	if err := c.Load("0Z00000000000000"); err == nil {
+		t.Error("Z is not a valid hexidecmial character and should have errored.")
 	}
 }
 
@@ -165,5 +178,19 @@ func TestDataRequest(t *testing.T) {
 		if actual := r.String(firmware.Data(block)); actual != expected {
 			t.Errorf("Payload does not match. Actual: %s. Expected: %s.", actual, expected)
 		}
+	}
+}
+
+func TestNoFileFirmware(t *testing.T) {
+	firmware := Firmware{}
+	if err := firmware.Load("/tmp/AFileThatDoesNotExist.hex"); err == nil {
+		t.Error("The file does not exist should have errored.")
+	}
+}
+
+func TestParseUint16(t *testing.T) {
+	firmware := Firmware{}
+	if _, err := firmware.parseUint16("99999999"); err == nil {
+		t.Error("The number was not a valid uint16 and should have errored.")
 	}
 }

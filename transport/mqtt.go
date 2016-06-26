@@ -36,8 +36,8 @@ func NewMQTT(filename string) *MQTT {
 	return &config
 }
 
-// Loop - Loop forever and ever, amen
-func (t *MQTT) Loop() {
+// ConSub - Connect and Subscribe
+func (t *MQTT) ConSub() error {
 	log.Print("Connecting to MQTT... ")
 	opts := mqtt.NewClientOptions().
 		AddBroker(t.Settings.Broker).
@@ -45,7 +45,7 @@ func (t *MQTT) Loop() {
 
 	client := mqtt.NewClient(opts)
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
-		panic(token.Error())
+		return token.Error()
 	}
 	log.Println("Connected")
 
@@ -59,11 +59,11 @@ func (t *MQTT) Loop() {
 
 	for topic, handler := range subscriptions {
 		if token := client.Subscribe(topic, 0, handler); token.Wait() && token.Error() != nil {
-			panic(token.Error())
+			return token.Error()
 		}
 	}
 
-	select {}
+	return nil
 }
 
 func (t *MQTT) idRequest(client *mqtt.Client, msg mqtt.Message) {

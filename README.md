@@ -8,6 +8,12 @@ CI](https://img.shields.io/travis/mannkind/mysb/master.svg?style=flat-square)](h
 
 A Firmware Uploading Tool for the MYSBootloader via MQTT
 
+# Installation
+
+* go get github.com/mannkind/mysb
+* go intall github.com/mannkind/mysb
+* mysb -c */the/path/to/config.yaml*
+
 # Configuration
 
 Configuration happens in the config.yaml file. A full example might look this:
