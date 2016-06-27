@@ -1,8 +1,7 @@
-package transport
+package ota
 
 import (
 	"fmt"
-	"github.com/mannkind/mysb/ota"
 	"log"
 	"os"
 	"strconv"
@@ -13,7 +12,7 @@ type Control struct {
 	NextID           uint8
 	FirmwareBasePath string
 	Nodes            map[string]map[string]string
-	Commands         map[string]ota.Configuration
+	Commands         map[string]Configuration
 }
 
 // FWType - The type of firmware used
@@ -70,16 +69,16 @@ func (c *Control) IDRequest() string {
 
 // ConfigurationRequest - Handle incoming firmware configuration requets
 func (c *Control) ConfigurationRequest(to string, payload string) string {
-	req := ota.Configuration{}
+	req := Configuration{}
 	req.Load(payload)
 
 	typ, ver, filename, _ := c.FirmwareInfo(to, fmt.Sprintf("%d", req.Type), fmt.Sprintf("%d", req.Version))
-	firmware := ota.Firmware{}
+	firmware := Firmware{}
 	firmware.Load(filename)
 
 	ftype, _ := c.parseUint16(typ)
 	fver, _ := c.parseUint16(ver)
-	resp := ota.Configuration{
+	resp := Configuration{
 		Type:    ftype,
 		Version: fver,
 		Blocks:  firmware.Blocks,
@@ -92,7 +91,7 @@ func (c *Control) ConfigurationRequest(to string, payload string) string {
 
 // DataRequest - Handle incoming firmware requests
 func (c *Control) DataRequest(to string, payload string) string {
-	req := ota.Data{}
+	req := Data{}
 	req.Load(payload)
 
 	ftype, fver, fname, _ := c.FirmwareInfo(
@@ -101,12 +100,12 @@ func (c *Control) DataRequest(to string, payload string) string {
 		fmt.Sprintf("%d", req.Version),
 	)
 
-	firmware := ota.Firmware{}
+	firmware := Firmware{}
 	firmware.Load(fname)
 
 	firmwareType, _ := c.parseUint16(ftype)
 	firmwareVer, _ := c.parseUint16(fver)
-	resp := ota.Data{
+	resp := Data{
 		Type:    firmwareType,
 		Version: firmwareVer,
 		Block:   req.Block,
@@ -129,7 +128,7 @@ func (c *Control) BootloaderCommand(to string, cmd string, payload string) {
 	command, _ := c.parseUint16(cmd)
 	pl, _ := c.parseUint16(payload)
 
-	resp := ota.Configuration{
+	resp := Configuration{
 		Type:    command,
 		Version: 0,
 		Blocks:  0,
@@ -148,7 +147,7 @@ func (c *Control) BootloaderCommand(to string, cmd string, payload string) {
 
 	log.Printf("Bootloader Command: To: %s Cmd: %s Payload: %s\n", to, cmd, payload)
 	if c.Commands == nil {
-		c.Commands = make(map[string]ota.Configuration)
+		c.Commands = make(map[string]Configuration)
 	}
 	c.Commands[to] = resp
 }

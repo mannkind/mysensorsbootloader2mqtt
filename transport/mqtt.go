@@ -2,6 +2,7 @@ package transport
 
 import (
 	"fmt"
+	"github.com/mannkind/mysb/ota"
 	"gopkg.in/mqtt.v0"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
@@ -17,7 +18,7 @@ type MQTT struct {
 		SubTopic string
 		PubTopic string
 	}
-	Control       Control
+	Control       ota.Control
 	LastPublished string
 }
 
