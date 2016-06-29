@@ -10,7 +10,7 @@ func main() {
 	flag.Parse()
 
 	mqtt := *transport.NewMQTT(*c)
-	mqtt.ConSub()
+	mqtt.Start()
 
 	select {}
 }

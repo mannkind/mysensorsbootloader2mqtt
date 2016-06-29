@@ -2,13 +2,13 @@ package transport
 
 import (
 	"fmt"
-	"gopkg.in/mqtt.v0"
+	"github.com/eclipse/paho.mqtt.golang"
 	"testing"
 )
 
 const nodeRequestHex = "../test_files/1/1/firmware.hex"
 
-var testClient = new(mqtt.Client)
+var testClient = mqtt.NewClient(mqtt.NewClientOptions())
 
 func defaultTestMQTT() *MQTT {
 	return NewMQTT("_test_config.yaml")
@@ -99,9 +99,9 @@ func TestMqttBadBootloaderCommand(t *testing.T) {
 	}
 }
 
-func TestMqttConSub(t *testing.T) {
+func TestMqttStart(t *testing.T) {
 	myMQTT := defaultTestMQTT()
-	if err := myMQTT.ConSub(); err != nil {
+	if err := myMQTT.Start(); err != nil {
 		t.Error("Something went wrong connecting and subscribing!")
 	}
 }
