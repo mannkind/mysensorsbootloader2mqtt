@@ -106,6 +106,11 @@ func TestMqttStart(t *testing.T) {
 	}
 }
 
+func TestMqttConnect(t *testing.T) {
+	myMQTT := defaultTestMQTT()
+	myMQTT.onConnect(testClient)
+}
+
 type mockMessage struct {
 	topic   string
 	payload []byte

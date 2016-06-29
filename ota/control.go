@@ -64,6 +64,8 @@ func (c Control) FirmwareInfo(nodeID string, firmwareType string, firmwareVersio
 func (c *Control) IDRequest() string {
 	log.Println("ID Request")
 	c.NextID++
+
+    log.Printf("Assigning ID: %d\n", c.NextID)
 	return fmt.Sprintf("%d", c.NextID)
 }
 
@@ -85,7 +87,7 @@ func (c *Control) ConfigurationRequest(to string, payload string) string {
 		Crc:     firmware.Crc,
 	}
 
-	log.Printf("Request: %s; Response: %s\n", req.String(), resp.String())
+	log.Printf("Configuration Request: From: %s; Request: %s; Response: %s\n", to, req.String(), resp.String())
 	return resp.String()
 }
 
@@ -112,12 +114,12 @@ func (c *Control) DataRequest(to string, payload string) string {
 	}
 
 	if req.Block+1 == firmware.Blocks {
-		log.Printf("Data Request: From: %s, Payload: %s\n", to, payload)
-		log.Printf("Sending last block of %d\n", firmware.Blocks)
+		log.Printf("Data Request: From: %s; Payload: %s\n", to, payload)
+		log.Printf("Sending last block of %d to %s\n", firmware.Blocks, to)
 	} else if req.Block == 0 {
-		log.Printf("Sending first block of %d\n", firmware.Blocks)
+		log.Printf("Sending first block of %d to %s\n", firmware.Blocks, to)
 	} else if req.Block%50 == 0 {
-		log.Printf("Sending block %d of %d\n", req.Block, firmware.Blocks)
+		log.Printf("Sending block %d of %d to %s\n", req.Block, firmware.Blocks, to)
 	}
 
 	return resp.String(firmware.Data(req.Block))
@@ -145,7 +147,7 @@ func (c *Control) BootloaderCommand(to string, cmd string, payload string) {
 		resp.Version = pl
 	}
 
-	log.Printf("Bootloader Command: To: %s Cmd: %s Payload: %s\n", to, cmd, payload)
+	log.Printf("Bootloader Command: To: %s; Cmd: %s; Payload: %s\n", to, cmd, payload)
 	if c.Commands == nil {
 		c.Commands = make(map[string]Configuration)
 	}
