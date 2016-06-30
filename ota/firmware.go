@@ -2,6 +2,7 @@ package ota
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"strconv"
 )
@@ -94,10 +95,14 @@ func (f *Firmware) Load(filename string) error {
 }
 
 // Data - Gets a specific block from the firmware data
-func (f Firmware) Data(block uint16) []byte {
+func (f Firmware) Data(block uint16) ([]byte, error) {
 	fromBlock := block * firmwareBlockSize
 	toBlock := fromBlock + firmwareBlockSize
-	return f.data[fromBlock:toBlock]
+	if dataLen := uint16(len(f.data)); dataLen < toBlock {
+		return []byte{}, fmt.Errorf("Block %d cannot be found in the firmware data.", block)
+	}
+
+	return f.data[fromBlock:toBlock], nil
 }
 
 func (f Firmware) parseUint16(input string) (uint16, error) {

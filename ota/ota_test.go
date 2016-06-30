@@ -176,7 +176,12 @@ func TestDataRequest(t *testing.T) {
 		r.Load(incoming)
 
 		expected := payloads[i]
-		if actual := r.String(firmware.Data(block)); actual != expected {
+		data, err := firmware.Data(block)
+		if err != nil {
+			t.Error(err)
+		}
+
+		if actual := r.String(data); actual != expected {
 			t.Errorf("Payload does not match. Actual: %s. Expected: %s.", actual, expected)
 		}
 	}
@@ -374,7 +379,7 @@ func TestControlBootloaderCmd(t *testing.T) {
 		Version uint16
 	}{
 		{"1", "1", "", 1, 0},
-		{"2", "2", "9", 2, 9},
+		{"2", "2", "13", 2, 13},
 	}
 
 	for _, v := range tests {
@@ -383,14 +388,29 @@ func TestControlBootloaderCmd(t *testing.T) {
 		if cmd, ok := myControl.Commands[v.To]; !ok {
 			t.Error("Bootloader command not found")
 		} else if cmd.Type != v.Type || cmd.Version != v.Version || cmd.Blocks != 0 {
-			t.Error("Bootloader command not loaded correctly")
+			t.Errorf("Bootloader command (%d, %d) not loaded correctly (%d, %d)", v.Type, v.Version, cmd.Type, cmd.Version)
 		}
 	}
 }
 
 func TestControlParseUint16(t *testing.T) {
+	var tests = []struct {
+		From string
+		Base int
+		To   uint16
+	}{
+		{"0D", 16, 13},
+		{"25", 10, 25},
+	}
+
 	myControl := defaultTestControl()
-	if _, err := myControl.parseUint16("99999999"); err == nil {
+	for _, v := range tests {
+		if parsed, err := myControl.parseUint16(v.From, v.Base); parsed != v.To || err != nil {
+			t.Errorf("%s was not parsed to %d as expected; parsed as %d instead.", v.From, v.To, parsed)
+		}
+	}
+
+	if _, err := myControl.parseUint16("99999999", 16); err == nil {
 		t.Error("The number was not a valid uint16 and should have errored.")
 	}
 }

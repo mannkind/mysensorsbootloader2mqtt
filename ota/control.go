@@ -65,7 +65,7 @@ func (c *Control) IDRequest() string {
 	log.Println("ID Request")
 	c.NextID++
 
-    log.Printf("Assigning ID: %d\n", c.NextID)
+	log.Printf("Assigning ID: %d\n", c.NextID)
 	return fmt.Sprintf("%d", c.NextID)
 }
 
@@ -78,8 +78,8 @@ func (c *Control) ConfigurationRequest(to string, payload string) string {
 	firmware := Firmware{}
 	firmware.Load(filename)
 
-	ftype, _ := c.parseUint16(typ)
-	fver, _ := c.parseUint16(ver)
+	ftype, _ := c.parseUint16(typ, 16)
+	fver, _ := c.parseUint16(ver, 16)
 	resp := Configuration{
 		Type:    ftype,
 		Version: fver,
@@ -105,8 +105,8 @@ func (c *Control) DataRequest(to string, payload string) string {
 	firmware := Firmware{}
 	firmware.Load(fname)
 
-	firmwareType, _ := c.parseUint16(ftype)
-	firmwareVer, _ := c.parseUint16(fver)
+	firmwareType, _ := c.parseUint16(ftype, 16)
+	firmwareVer, _ := c.parseUint16(fver, 16)
 	resp := Data{
 		Type:    firmwareType,
 		Version: firmwareVer,
@@ -122,13 +122,19 @@ func (c *Control) DataRequest(to string, payload string) string {
 		log.Printf("Sending block %d of %d to %s\n", req.Block, firmware.Blocks, to)
 	}
 
-	return resp.String(firmware.Data(req.Block))
+	data, err := firmware.Data(req.Block)
+	if err != nil {
+		log.Println(err)
+		return "00000000000000000000000000000000"
+	}
+
+	return resp.String(data)
 }
 
 // BootloaderCommand - Handle bootloader commands
 func (c *Control) BootloaderCommand(to string, cmd string, payload string) {
-	command, _ := c.parseUint16(cmd)
-	pl, _ := c.parseUint16(payload)
+	command, _ := c.parseUint16(cmd, 10)
+	pl, _ := c.parseUint16(payload, 10)
 
 	resp := Configuration{
 		Type:    command,
@@ -154,8 +160,8 @@ func (c *Control) BootloaderCommand(to string, cmd string, payload string) {
 	c.Commands[to] = resp
 }
 
-func (c Control) parseUint16(input string) (uint16, error) {
-	val, err := strconv.ParseUint(input, 16, 16)
+func (c Control) parseUint16(input string, base int) (uint16, error) {
+	val, err := strconv.ParseUint(input, base, 16)
 	if err != nil {
 		return 0, err
 	}
