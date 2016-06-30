@@ -133,6 +133,7 @@ func (c *Control) DataRequest(to string, payload string) string {
 
 // BootloaderCommand - Handle bootloader commands
 func (c *Control) BootloaderCommand(to string, cmd string, payload string) {
+	// Use base 10 instead of hex since these are mainly used by humans
 	command, _ := c.parseUint16(cmd, 10)
 	pl, _ := c.parseUint16(payload, 10)
 

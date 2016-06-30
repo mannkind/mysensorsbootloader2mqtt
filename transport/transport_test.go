@@ -3,6 +3,7 @@ package transport
 import (
 	"fmt"
 	"github.com/eclipse/paho.mqtt.golang"
+	"github.com/spf13/viper"
 	"testing"
 )
 
@@ -11,7 +12,21 @@ const nodeRequestHex = "../test_files/1/1/firmware.hex"
 var testClient = mqtt.NewClient(mqtt.NewClientOptions())
 
 func defaultTestMQTT() *MQTT {
-	return NewMQTT("_test_config.yaml")
+
+	viper.SetConfigName("_test_config")
+	viper.AddConfigPath(".")
+	viper.WatchConfig()
+
+	myMqtt := MQTT{}
+	if err := viper.ReadInConfig(); err != nil {
+		panic(err)
+	}
+
+	if err := viper.Unmarshal(&myMqtt); err != nil {
+		panic(err)
+	}
+
+	return &myMqtt
 }
 
 func TestMqttIDRequest(t *testing.T) {
@@ -102,7 +117,14 @@ func TestMqttBadBootloaderCommand(t *testing.T) {
 func TestMqttStart(t *testing.T) {
 	myMQTT := defaultTestMQTT()
 	if err := myMQTT.Start(); err != nil {
-		t.Error("Something went wrong connecting and subscribing!")
+		t.Error("Something went wrong starting!")
+	}
+}
+
+func TestMqttRestart(t *testing.T) {
+	myMQTT := defaultTestMQTT()
+	if err := myMQTT.Restart(); err != nil {
+		t.Error("Something went wrong restarting!")
 	}
 }
 

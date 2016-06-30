@@ -4,14 +4,13 @@ import (
 	"fmt"
 	"github.com/eclipse/paho.mqtt.golang"
 	"github.com/mannkind/mysb/ota"
-	"gopkg.in/yaml.v2"
-	"io/ioutil"
 	"log"
 	"strings"
 )
 
 // MQTT - MQTT all the things!
 type MQTT struct {
+	Client   mqtt.Client
 	Settings struct {
 		ClientID string
 		Broker   string
@@ -22,42 +21,41 @@ type MQTT struct {
 	LastPublished string
 }
 
-// NewMQTT - Create a new MQTT
-func NewMQTT(filename string) *MQTT {
-	log.Printf("Loading configuration file: %s", filename)
-
-	config := MQTT{}
-	source, err := ioutil.ReadFile(filename)
-	err = yaml.Unmarshal(source, &config)
-	if err != nil {
-		panic(err)
-	}
-	log.Println("Configuration file loaded")
-
-	return &config
-}
-
 // Start - Connect and Subscribe
 func (t *MQTT) Start() error {
-	log.Print("Connecting to MQTT... ")
+	log.Println("Connecting to MQTT")
 	opts := mqtt.NewClientOptions().
 		AddBroker(t.Settings.Broker).
 		SetClientID(t.Settings.ClientID).
 		SetOnConnectHandler(t.onConnect).
 		SetConnectionLostHandler(func(client mqtt.Client, err error) {
-			log.Printf("Disconnected: %s", err)
+			log.Printf("Disconnected from MQTT: %s.", err)
 		})
 
-	client := mqtt.NewClient(opts)
-	if token := client.Connect(); token.Wait() && token.Error() != nil {
+	t.Client = mqtt.NewClient(opts)
+	if token := t.Client.Connect(); token.Wait() && token.Error() != nil {
 		return token.Error()
 	}
 
 	return nil
 }
 
+// Restart - Disconnect from MQTT; Reconnect to MQTT
+func (t *MQTT) Restart() error {
+	if t.Client != nil && t.Client.IsConnected() {
+		log.Println("Disconnected from MQTT: configuration change")
+		t.Client.Disconnect(250)
+	}
+
+	if err := t.Start(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (t *MQTT) onConnect(client mqtt.Client) {
-	log.Println("Connected")
+	log.Println("Connected to MQTT")
 
 	// Subscribe to topics
 	subscriptions := map[string]mqtt.MessageHandler{
