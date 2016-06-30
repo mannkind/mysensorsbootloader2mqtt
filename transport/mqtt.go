@@ -2,8 +2,8 @@ package transport
 
 import (
 	"fmt"
-	"github.com/mannkind/mysb/ota"
 	"github.com/eclipse/paho.mqtt.golang"
+	"github.com/mannkind/mysb/ota"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"log"
@@ -43,10 +43,10 @@ func (t *MQTT) Start() error {
 	opts := mqtt.NewClientOptions().
 		AddBroker(t.Settings.Broker).
 		SetClientID(t.Settings.ClientID).
-        SetOnConnectHandler(t.onConnect).
-        SetConnectionLostHandler(func(client mqtt.Client, err error) {
-            log.Printf("Disconnected: %s", err)
-        })
+		SetOnConnectHandler(t.onConnect).
+		SetConnectionLostHandler(func(client mqtt.Client, err error) {
+			log.Printf("Disconnected: %s", err)
+		})
 
 	client := mqtt.NewClient(opts)
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
@@ -59,19 +59,19 @@ func (t *MQTT) Start() error {
 func (t *MQTT) onConnect(client mqtt.Client) {
 	log.Println("Connected")
 
-    // Subscribe to topics
-    subscriptions := map[string]mqtt.MessageHandler{
-        fmt.Sprintf("%s/255/255/3/0/3", t.Settings.SubTopic): t.idRequest,
-        fmt.Sprintf("%s/+/255/4/0/0", t.Settings.SubTopic):   t.configurationRequest,
-        fmt.Sprintf("%s/+/255/4/0/2", t.Settings.SubTopic):   t.dataRequest,
-        "mysensors/bootloader/+/+":                           t.bootloaderCommand,
-    }
+	// Subscribe to topics
+	subscriptions := map[string]mqtt.MessageHandler{
+		fmt.Sprintf("%s/255/255/3/0/3", t.Settings.SubTopic): t.idRequest,
+		fmt.Sprintf("%s/+/255/4/0/0", t.Settings.SubTopic):   t.configurationRequest,
+		fmt.Sprintf("%s/+/255/4/0/2", t.Settings.SubTopic):   t.dataRequest,
+		"mysensors/bootloader/+/+":                           t.bootloaderCommand,
+	}
 
-    for topic, handler := range subscriptions {
-        if token := client.Subscribe(topic, 0, handler); token.Wait() && token.Error() != nil {
-            log.Print(token.Error())
-        }
-    }
+	for topic, handler := range subscriptions {
+		if token := client.Subscribe(topic, 0, handler); token.Wait() && token.Error() != nil {
+			log.Print(token.Error())
+		}
+	}
 }
 
 func (t *MQTT) idRequest(client mqtt.Client, msg mqtt.Message) {
