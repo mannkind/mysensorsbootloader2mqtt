@@ -3,7 +3,8 @@ package transport
 import (
 	"fmt"
 	"github.com/eclipse/paho.mqtt.golang"
-	"github.com/spf13/viper"
+	"gopkg.in/yaml.v2"
+	"io/ioutil"
 	"testing"
 )
 
@@ -13,19 +14,13 @@ var testClient = mqtt.NewClient(mqtt.NewClientOptions())
 
 func defaultTestMQTT() *MQTT {
 
-	viper.SetConfigName("_test_config")
-	viper.AddConfigPath(".")
-	viper.WatchConfig()
-
 	myMqtt := MQTT{}
-	if err := viper.ReadInConfig(); err != nil {
+	filename := "_test_config.yaml"
+	source, err := ioutil.ReadFile(filename)
+	err = yaml.Unmarshal(source, &myMqtt)
+	if err != nil {
 		panic(err)
 	}
-
-	if err := viper.Unmarshal(&myMqtt); err != nil {
-		panic(err)
-	}
-
 	return &myMqtt
 }
 
