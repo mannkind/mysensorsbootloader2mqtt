@@ -40,20 +40,6 @@ func (t *MQTT) Start() error {
 	return nil
 }
 
-// Restart - Disconnect from MQTT; Reconnect to MQTT
-func (t *MQTT) Restart() error {
-	if t.Client != nil && t.Client.IsConnected() {
-		log.Println("Disconnected from MQTT: configuration change")
-		t.Client.Disconnect(250)
-	}
-
-	if err := t.Start(); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (t *MQTT) onConnect(client mqtt.Client) {
 	log.Println("Connected to MQTT")
 

@@ -8,15 +8,11 @@ import (
 	"log"
 )
 
-var (
-	mqtt transport.MQTT
-)
-
 func main() {
 	c := flag.String("c", "config.yaml", "/the/path/to/config.yaml")
 	flag.Parse()
 
-	mqtt = transport.MQTT{}
+	mqtt := transport.MQTT{}
 
 	filename := *c
 	log.Printf("Loading Configuration %s", filename)

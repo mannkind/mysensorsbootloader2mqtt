@@ -116,13 +116,6 @@ func TestMqttStart(t *testing.T) {
 	}
 }
 
-func TestMqttRestart(t *testing.T) {
-	myMQTT := defaultTestMQTT()
-	if err := myMQTT.Restart(); err != nil {
-		t.Error("Something went wrong restarting!")
-	}
-}
-
 func TestMqttConnect(t *testing.T) {
 	myMQTT := defaultTestMQTT()
 	myMQTT.onConnect(testClient)
