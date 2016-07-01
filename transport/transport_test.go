@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/eclipse/paho.mqtt.golang"
 	"gopkg.in/yaml.v2"
-	"io/ioutil"
 	"testing"
 )
 
@@ -13,11 +12,23 @@ const nodeRequestHex = "../test_files/1/1/firmware.hex"
 var testClient = mqtt.NewClient(mqtt.NewClientOptions())
 
 func defaultTestMQTT() *MQTT {
+	var testConfig = `
+        settings:
+          clientid: 'GoMySysBootloader'
+          broker: "tcp://test.mosquitto.org:1883"
+          subtopic: 'mysensors_rx'
+          pubtopic: 'mysensors_tx'
+
+        control:
+            nextid: 12
+            firmwarebasepath: '../test_files'
+            nodes:
+                default: { type: 1, version: 1 }
+                1: { type: 1, version: 1 }
+    `
 
 	myMqtt := MQTT{}
-	filename := "_test_config.yaml"
-	source, err := ioutil.ReadFile(filename)
-	err = yaml.Unmarshal(source, &myMqtt)
+	err := yaml.Unmarshal([]byte(testConfig), &myMqtt)
 	if err != nil {
 		panic(err)
 	}
