@@ -109,6 +109,8 @@ func (t *MQTT) runBootloaderCommand(client mqtt.Client, to string) bool {
 }
 
 func (t *MQTT) publish(client mqtt.Client, topic string, payload string) {
-	client.Publish(topic, 0, false, payload)
+	if token := client.Publish(topic, 0, false, payload); token.Wait() && token.Error() != nil {
+		log.Println(token.Error())
+	}
 	t.LastPublished = fmt.Sprintf("%s %s", topic, payload)
 }
