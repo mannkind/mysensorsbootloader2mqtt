@@ -124,8 +124,7 @@ func (c *Control) DataRequest(to string, payload string) string {
 
 	data, err := firmware.Data(req.Block)
 	if err != nil {
-		log.Println(err)
-		return "00000000000000000000000000000000"
+		log.Panic(err)
 	}
 
 	return resp.String(data)
