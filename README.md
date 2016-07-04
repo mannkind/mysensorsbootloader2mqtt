@@ -5,6 +5,7 @@ License](https://img.shields.io/badge/License-MIT-orange.svg?style=flat-square)]
 [![Travis
 CI](https://img.shields.io/travis/mannkind/mysb/master.svg?style=flat-square)](https://travis-ci.org/mannkind/mysb)
 [![Coverage Status](http://codecov.io/github/mannkind/mysb/coverage.svg?branch=master)](http://codecov.io/github/mannkind/mysb?branch=master)
+[![Go Report Card](https://goreportcard.com/badge/github.com/mannkind/mysb)](https://goreportcard.com/report/github.com/mannkind/mysb)
 
 A Firmware Uploading Tool for the MYSBootloader via MQTT
 

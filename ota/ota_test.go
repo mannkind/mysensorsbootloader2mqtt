@@ -206,10 +206,10 @@ func defaultTestControl() *Control {
 		NextID:           12,
 		FirmwareBasePath: "../test_files",
 		Nodes: map[string]map[string]string{
-			"default": map[string]string{
+			"default": {
 				"type": "1", "version": "1",
 			},
-			"1": map[string]string{
+			"1": {
 				"type": "1", "version": "1",
 			},
 		},
