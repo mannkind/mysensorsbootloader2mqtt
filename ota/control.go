@@ -15,49 +15,66 @@ type Control struct {
 	Commands         map[string]Configuration
 }
 
-// FWType - The type of firmware used
-type FWType int
+// fwSource - The source of firmware
+type fwSource int
 
-// FWType - The type of firmware used
+// fwInfo - Structured information about the firmware
+type fwInfo struct {
+	Type    string
+	Version string
+	Path    string
+	Source  fwSource
+}
+
+// fwSource - The source of firmware
 const (
-	FWUnknown FWType = iota
-	FWNode
-	FWReq
-	FWDefault
+	fwUnknown fwSource = iota
+	fwNode
+	fwReq
+	fwDefault
 )
 
-// FirmwareInfo - Get the firmware to use given a nodeid, or firmware type/version
-func (c Control) FirmwareInfo(nodeID string, firmwareType string, firmwareVersion string) (string, string, string, FWType) {
-	outType, outVer, outPath, outFW := "0", "0", "", FWUnknown
+// firmwareInfo - Get the firmware to use given a nodeid, or firmware type/version
+func (c Control) firmwareInfo(nodeID string, firmwareType string, firmwareVersion string) fwInfo {
+	fw := fwInfo{
+		Type:    "0",
+		Version: "0",
+		Path:    "",
+		Source:  fwUnknown,
+	}
+
+	// Attempt to load firmware from the assignment in config.yaml
 	nodeMapping := c.Nodes[nodeID]
 	if nodeMapping != nil {
-		outType, _ = nodeMapping["type"]
-		outVer, _ = nodeMapping["version"]
-		outPath = fmt.Sprintf("%s/%s/%s/firmware.hex", c.FirmwareBasePath, outType, outVer)
-		outFW = FWNode
+		fw.Type, _ = nodeMapping["type"]
+		fw.Version, _ = nodeMapping["version"]
+		fw.Path = fmt.Sprintf("%s/%s/%s/firmware.hex", c.FirmwareBasePath, fw.Type, fw.Version)
+		fw.Source = fwNode
 	}
 
-	if _, err := os.Stat(outPath); err != nil {
-		outType, outVer, outFW = firmwareType, firmwareVersion, FWReq
-		outPath = fmt.Sprintf("%s/%s/%s/firmware.hex", c.FirmwareBasePath, outType, outVer)
+	// Attempt to load firmware based on the node's request
+	if _, err := os.Stat(fw.Path); err != nil {
+		fw.Type, fw.Version, fw.Source = firmwareType, firmwareVersion, fwReq
+		fw.Path = fmt.Sprintf("%s/%s/%s/firmware.hex", c.FirmwareBasePath, fw.Type, fw.Version)
 	}
 
-	if _, err := os.Stat(outPath); err != nil {
-		outType, outVer, outFW = "0", "0", FWUnknown
+	// Attempt to laod the default firmware
+	if _, err := os.Stat(fw.Path); err != nil {
 		defaultMapping := c.Nodes["default"]
 		if defaultMapping != nil {
-			outType, _ = defaultMapping["type"]
-			outVer, _ = defaultMapping["version"]
-			outFW = FWDefault
+			fw.Type, _ = defaultMapping["type"]
+			fw.Version, _ = defaultMapping["version"]
+			fw.Source = fwDefault
 		}
-		outPath = fmt.Sprintf("%s/%s/%s/firmware.hex", c.FirmwareBasePath, outType, outVer)
+		fw.Path = fmt.Sprintf("%s/%s/%s/firmware.hex", c.FirmwareBasePath, fw.Type, fw.Version)
 	}
 
-	if _, err := os.Stat(outPath); err != nil {
-		outPath = ""
+	// Awww, nothing worked...
+	if _, err := os.Stat(fw.Path); err != nil {
+		fw.Type, fw.Version, fw.Path, fw.Source = "0", "0", "", fwUnknown
 	}
 
-	return outType, outVer, outPath, outFW
+	return fw
 }
 
 // IDRequest - Handle incoming ID requests
@@ -74,15 +91,14 @@ func (c *Control) ConfigurationRequest(to string, payload string) string {
 	req := Configuration{}
 	req.Load(payload)
 
-	typ, ver, filename, _ := c.FirmwareInfo(to, fmt.Sprintf("%d", req.Type), fmt.Sprintf("%d", req.Version))
-	firmware := Firmware{}
-	firmware.Load(filename)
+	fw := c.firmwareInfo(to, fmt.Sprintf("%d", req.Type), fmt.Sprintf("%d", req.Version))
 
-	ftype, _ := c.parseUint16(typ, 16)
-	fver, _ := c.parseUint16(ver, 16)
+	firmware := Firmware{}
+	firmware.Load(fw.Path)
+
 	resp := Configuration{
-		Type:    ftype,
-		Version: fver,
+		Type:    c.parseUint16(fw.Type, 16),
+		Version: c.parseUint16(fw.Version, 16),
 		Blocks:  firmware.Blocks,
 		Crc:     firmware.Crc,
 	}
@@ -96,20 +112,14 @@ func (c *Control) DataRequest(to string, payload string) string {
 	req := Data{}
 	req.Load(payload)
 
-	ftype, fver, fname, _ := c.FirmwareInfo(
-		to,
-		fmt.Sprintf("%d", req.Type),
-		fmt.Sprintf("%d", req.Version),
-	)
+	fw := c.firmwareInfo(to, fmt.Sprintf("%d", req.Type), fmt.Sprintf("%d", req.Version))
 
 	firmware := Firmware{}
-	firmware.Load(fname)
+	firmware.Load(fw.Path)
 
-	firmwareType, _ := c.parseUint16(ftype, 16)
-	firmwareVer, _ := c.parseUint16(fver, 16)
 	resp := Data{
-		Type:    firmwareType,
-		Version: firmwareVer,
+		Type:    c.parseUint16(fw.Type, 16),
+		Version: c.parseUint16(fw.Version, 16),
 		Block:   req.Block,
 	}
 
@@ -131,26 +141,20 @@ func (c *Control) DataRequest(to string, payload string) string {
 }
 
 // BootloaderCommand - Handle bootloader commands
+// Bootloader commands:
+// * 0x01 - Erase EEPROM
+// * 0x02 - Set NodeID
+// * 0x03 - Set ParentID
 func (c *Control) BootloaderCommand(to string, cmd string, payload string) {
-	// Use base 10 instead of hex since these are mainly used by humans
-	command, _ := c.parseUint16(cmd, 10)
-	pl, _ := c.parseUint16(payload, 10)
-
 	resp := Configuration{
-		Type:    command,
+		Type:    c.parseUint16(cmd, 10),
 		Version: 0,
 		Blocks:  0,
 		Crc:     0xDA7A,
 	}
 
-	/*
-	 Bootloader commands
-	 0x01 - Erase EEPROM
-	 0x02 - Set NodeID
-	 0x03 - Set ParentID
-	*/
 	if resp.Type == 0x02 || resp.Type == 0x03 {
-		resp.Version = pl
+		resp.Version = c.parseUint16(payload, 10)
 	}
 
 	log.Printf("Bootloader Command: To: %s; Cmd: %s; Payload: %s\n", to, cmd, payload)
@@ -160,11 +164,10 @@ func (c *Control) BootloaderCommand(to string, cmd string, payload string) {
 	c.Commands[to] = resp
 }
 
-func (c Control) parseUint16(input string, base int) (uint16, error) {
-	val, err := strconv.ParseUint(input, base, 16)
-	if err != nil {
-		return 0, err
+func (c Control) parseUint16(input string, base int) uint16 {
+	if val, err := strconv.ParseUint(input, base, 16); err == nil {
+		return uint16(val)
 	}
 
-	return uint16(val), nil
+	return 0
 }

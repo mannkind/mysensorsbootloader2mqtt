@@ -10,15 +10,25 @@ const testHex = "../test_files/firmware.hex"
 const nodeRequestHex = "../test_files/1/1/firmware.hex"
 
 func TestLoadFirmware(t *testing.T) {
-	firmware := Firmware{}
-	firmware.Load(testHex)
-
-	if firmware.Blocks != 80 {
-		t.Error("Expected 80 blocks")
+	var tests = []struct {
+		File   string
+		Blocks uint16
+		Crc    uint16
+	}{
+		{testHex, 80, 18132},
 	}
 
-	if firmware.Crc != 18132 {
-		t.Error("Expected a crc of 18132")
+	for _, f := range tests {
+		firmware := Firmware{}
+		firmware.Load(f.File)
+
+		if firmware.Blocks != f.Blocks {
+			t.Errorf("Expected %d blocks", f.Blocks)
+		}
+
+		if firmware.Crc != f.Crc {
+			t.Errorf("Expected a crc of %d", f.Crc)
+		}
 	}
 }
 
@@ -196,8 +206,8 @@ func TestNoFileFirmware(t *testing.T) {
 
 func TestFirmwareParseUint16(t *testing.T) {
 	firmware := Firmware{}
-	if _, err := firmware.parseUint16("99999999"); err == nil {
-		t.Error("The number was not a valid uint16 and should have errored.")
+	if val := firmware.parseUint16("99999999"); val != 0 {
+		t.Error("The number was not a valid uint16 and should have returned 0.")
 	}
 }
 
@@ -340,24 +350,24 @@ func TestControlDataRequest(t *testing.T) {
 func TestControlFirmwareInfoByNode(t *testing.T) {
 	myControl := defaultTestControl()
 
-	if typ, ver, filename, fwType := myControl.FirmwareInfo("1", "5", "1"); typ != "1" || ver != "1" || filename != nodeRequestHex || fwType != FWNode {
-		t.Errorf("Node: Unexpected node-based type/version/filename: %s, %s, %s", typ, ver, filename)
+	if fmInfo := myControl.firmwareInfo("1", "5", "1"); fmInfo.Type != "1" || fmInfo.Version != "1" || fmInfo.Path != nodeRequestHex || fmInfo.Source != fwNode {
+		t.Errorf("Node: Unexpected node-based type/version/filename: %s, %s, %s", fmInfo.Type, fmInfo.Version, fmInfo.Path)
 	}
 }
 
-func TestContorlFirmwareInfoByRequest(t *testing.T) {
+func TestControlFirmwareInfoByRequest(t *testing.T) {
 	myControl := defaultTestControl()
 
-	if typ, ver, filename, fwType := myControl.FirmwareInfo("254", "1", "1"); typ != "1" || ver != "1" || filename != nodeRequestHex || fwType != FWReq {
-		t.Errorf("Request: Unexpected request-based type/version/filename: %s, %s, %s", typ, ver, filename)
+	if fmInfo := myControl.firmwareInfo("254", "1", "1"); fmInfo.Type != "1" || fmInfo.Version != "1" || fmInfo.Path != nodeRequestHex || fmInfo.Source != fwReq {
+		t.Errorf("Request: Unexpected request-based type/version/filename: %s, %s, %s", fmInfo.Type, fmInfo.Version, fmInfo.Path)
 	}
 }
 
 func TestControlFirmwareInfoByDefault(t *testing.T) {
 	myControl := defaultTestControl()
 
-	if typ, ver, filename, fwType := myControl.FirmwareInfo("254", "254", "254"); typ != "1" || ver != "1" || filename != nodeRequestHex || fwType != FWDefault {
-		t.Errorf("Default: Unexpected default type/version/filename: %s, %s, %s", typ, ver, filename)
+	if fmInfo := myControl.firmwareInfo("254", "254", "254"); fmInfo.Type != "1" || fmInfo.Version != "1" || fmInfo.Path != nodeRequestHex || fmInfo.Source != fwDefault {
+		t.Errorf("Default: Unexpected default type/version/filename: %s, %s, %s", fmInfo.Type, fmInfo.Version, fmInfo.Path)
 	}
 }
 
@@ -365,8 +375,8 @@ func TestControlFirmwareInfoByUnknown(t *testing.T) {
 	myControl := defaultTestControl()
 	delete(myControl.Nodes, "default")
 
-	if typ, ver, filename, fwType := myControl.FirmwareInfo("254", "254", "254"); typ != "0" || ver != "0" || filename != "" || fwType != FWUnknown {
-		t.Errorf("Default: Unexpected unknown type/version/filename: %s, %s, %s", typ, ver, filename)
+	if fmInfo := myControl.firmwareInfo("254", "254", "254"); fmInfo.Type != "0" || fmInfo.Version != "0" || fmInfo.Path != "" || fmInfo.Source != fwUnknown {
+		t.Errorf("Default: Unexpected unknown type/version/filename: %s, %s, %s", fmInfo.Type, fmInfo.Version, fmInfo.Path)
 	}
 }
 
@@ -405,12 +415,12 @@ func TestControlParseUint16(t *testing.T) {
 
 	myControl := defaultTestControl()
 	for _, v := range tests {
-		if parsed, err := myControl.parseUint16(v.From, v.Base); parsed != v.To || err != nil {
+		if parsed := myControl.parseUint16(v.From, v.Base); parsed != v.To {
 			t.Errorf("%s was not parsed to %d as expected; parsed as %d instead.", v.From, v.To, parsed)
 		}
 	}
 
-	if _, err := myControl.parseUint16("99999999", 16); err == nil {
-		t.Error("The number was not a valid uint16 and should have errored.")
+	if val := myControl.parseUint16("99999999", 16); val != 0 {
+		t.Error("The number was not a valid uint16 and should have returned 0.")
 	}
 }

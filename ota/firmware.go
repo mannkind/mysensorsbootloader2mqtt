@@ -39,9 +39,9 @@ func (f *Firmware) Load(filename string) error {
 			line = line[1:]
 		}
 
-		rlen, _ := f.parseUint16(line[1:3])
-		offset, _ := f.parseUint16(line[3:7])
-		rtype, _ := f.parseUint16(line[7:9])
+		rlen := f.parseUint16(line[1:3])
+		offset := f.parseUint16(line[3:7])
+		rtype := f.parseUint16(line[7:9])
 
 		data := line[9 : 9+(2*rlen)]
 
@@ -61,7 +61,7 @@ func (f *Firmware) Load(filename string) error {
 
 		for i := uint16(0); i < rlen; i++ {
 			double := i * 2
-			d, _ := f.parseUint16(data[double : double+2])
+			d := f.parseUint16(data[double : double+2])
 			fwdata = append(fwdata, byte(d))
 		}
 
@@ -105,11 +105,10 @@ func (f Firmware) Data(block uint16) ([]byte, error) {
 	return f.data[fromBlock:toBlock], nil
 }
 
-func (f Firmware) parseUint16(input string) (uint16, error) {
-	val, err := strconv.ParseUint(input, 16, 16)
-	if err != nil {
-		return uint16(0), err
+func (f Firmware) parseUint16(input string) uint16 {
+	if val, err := strconv.ParseUint(input, 16, 16); err == nil {
+		return uint16(val)
 	}
 
-	return uint16(val), nil
+	return 0
 }
