@@ -51,9 +51,15 @@ func (t *MQTT) onConnect(client mqtt.Client) {
 		"mysensors/bootloader/+/+":                           t.bootloaderCommand,
 	}
 
+	//
+	if !client.IsConnected() {
+		log.Print("Subscribe Error: Not Connected (Reloading Config?)")
+		return
+	}
+
 	for topic, handler := range subscriptions {
 		if token := client.Subscribe(topic, 0, handler); token.Wait() && token.Error() != nil {
-			log.Print(token.Error())
+			log.Printf("Subscribe Error: %s", token.Error())
 		}
 	}
 }
@@ -110,7 +116,7 @@ func (t *MQTT) runBootloaderCommand(client mqtt.Client, to string) bool {
 
 func (t *MQTT) publish(client mqtt.Client, topic string, payload string) {
 	if token := client.Publish(topic, 0, false, payload); token.Wait() && token.Error() != nil {
-		log.Println(token.Error())
+		log.Printf("Publish Error: %s", token.Error())
 	}
 	t.LastPublished = fmt.Sprintf("%s %s", topic, payload)
 }
