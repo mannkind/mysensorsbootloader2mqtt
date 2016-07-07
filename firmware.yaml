@@ -1,15 +1,15 @@
 mqtt:
-    clientid: 'GoMySysBootloader'
-    broker: 'tcp://themis:1883'
-    subtopic: 'mysensors_rx'
-    pubtopic: 'mysensors_tx'
+    host: 'themis'
+    port: 1883
+    sub_topic: 'mysensors_rx'
+    pub_topic: 'mysensors_tx'
 
-autoid:
-    nextid: 12
+auto_id:
+    next_id: 12
 
 ota:
+    update_blocks: 50
     types:
-        0: 'Default'
         1: 'Temperature Monitor'
         2: 'Door Monitor'
         3: 'Plant Monitor'
@@ -23,14 +23,14 @@ ota:
         11: 'AC Actuator'
 
     versions:
-        0: 'Default'
+        default: 'Default'
         1: '1.6.0-beta'
         2: '2.0.0-beta'
 
     firmware:
-        0: { 0: '' }
+        # type: { version: path }
         1: { 2: '/Data/pysensors/firmware/TemperatureMonitor/firmware.hex' }
-        2: { 2: '/Data/pysensors/firmware/DoorMonitor/firmware.hex' }
+        2: { 2: '/Data/pysensors/firmware/DoorMonitor/firmware.hex' }   
         3: { 2: '/Data/pysensors/firmware/PlantMonitor/firmware.hex' }
         4: { 2: '/Data/pysensors/firmware/GarageActuator/firmware.hex' }
         5: { 2: '/Data/pysensors/firmware/EnergyMonitor/firmware.hex' }
@@ -55,3 +55,4 @@ ota:
         11: { type: 6, version: 2 }
         12: { type: 11, version: 2 }
         116: { type: 5, version: 2 }
+        default: { type: 1, version: 2 }
