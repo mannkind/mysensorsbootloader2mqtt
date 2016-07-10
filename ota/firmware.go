@@ -1,10 +1,9 @@
 package ota
 
 import (
-	"bufio"
 	"fmt"
+	"github.com/kierdavis/ihex-go"
 	"os"
-	"strconv"
 )
 
 const firmwareBlockSize uint16 = 16
@@ -16,68 +15,52 @@ type Firmware struct {
 	data   []byte
 }
 
-// Load - Loads a filename; computes block count and crc
-func (f *Firmware) Load(filename string) error {
-	file, oErr := os.Open(filename)
-	if oErr != nil {
-		return oErr
+// NewFirmware - Loads a filename; computes block count and crc
+func NewFirmware(filename string) *Firmware {
+	file, err := os.Open(filename)
+	if err != nil {
+		return &Firmware{}
 	}
-
 	defer file.Close()
 
-	// create a new scanner and read the file line by line
-	scanner := bufio.NewScanner(file)
-	var fwdata []byte
+	blocks := uint16(0)
+	crc := uint16(0)
+	data := []byte{}
 	start := uint16(0)
 	end := uint16(0)
+
+	scanner := ihex.NewDecoder(file)
 	for scanner.Scan() {
-		line := scanner.Text()
-		if len(line) == 0 {
-			continue
-		}
-		for line[0] != ':' {
-			line = line[1:]
-		}
-
-		rlen := f.parseUint16(line[1:3])
-		offset := f.parseUint16(line[3:7])
-		rtype := f.parseUint16(line[7:9])
-
-		data := line[9 : 9+(2*rlen)]
-
-		if rtype != 0 {
+		record := scanner.Record()
+		if record.Type != ihex.Data {
 			continue
 		}
 
 		if start == 0 && end == 0 {
-			start = offset
-			end = offset
+			start = record.Address
+			end = record.Address
 		}
 
-		for offset > end {
-			fwdata = append(fwdata, 255)
+		for record.Address > end {
+			data = append(data, 255)
 			end++
 		}
 
-		for i := uint16(0); i < rlen; i++ {
-			double := i * 2
-			d := f.parseUint16(data[double : double+2])
-			fwdata = append(fwdata, byte(d))
-		}
+		data = append(data, record.Data...)
 
-		end += rlen
+		end += uint16(len(record.Data))
 	}
 
 	pad := end % 128
 	for i := uint16(0); i < 128-pad; i++ {
-		fwdata = append(fwdata, 255)
+		data = append(data, 255)
 		end++
 	}
 
-	blocks := (end - start) / firmwareBlockSize
-	crc := uint16(0xFFFF)
-	for i := uint16(0); i < blocks*firmwareBlockSize; i++ {
-		crc = (crc ^ uint16(fwdata[i]&0xFF))
+	blocks = uint16(end-start) / firmwareBlockSize
+	crc = 0xFFFF
+	for i := 0; i < len(data); i++ {
+		crc = (crc ^ uint16(data[i]&0xFF))
 		for j := 0; j < 8; j++ {
 			a001 := (crc & 1) > 0
 			crc = (crc >> 1)
@@ -87,11 +70,11 @@ func (f *Firmware) Load(filename string) error {
 		}
 	}
 
-	f.Blocks = blocks
-	f.Crc = crc
-	f.data = fwdata
-
-	return scanner.Err()
+	return &Firmware{
+		Blocks: blocks,
+		Crc:    crc,
+		data:   data,
+	}
 }
 
 // Data - Gets a specific block from the firmware data
@@ -103,12 +86,4 @@ func (f Firmware) Data(block uint16) ([]byte, error) {
 	}
 
 	return f.data[fromBlock:toBlock], nil
-}
-
-func (f Firmware) parseUint16(input string) uint16 {
-	if val, err := strconv.ParseUint(input, 16, 16); err == nil {
-		return uint16(val)
-	}
-
-	return 0
 }

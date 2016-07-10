@@ -9,6 +9,8 @@ import (
 	"time"
 )
 
+const version string = "0.2.0"
+
 var cfgFile string
 var reload = make(chan bool)
 
@@ -48,6 +50,8 @@ func Execute() {
 }
 
 func init() {
+	log.Printf("Mysb Version: %s", version)
+
 	cobra.OnInitialize(func() {
 		viper.SetConfigFile(cfgFile)
 		viper.WatchConfig()

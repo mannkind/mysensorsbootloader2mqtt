@@ -15,15 +15,18 @@ type Configuration struct {
 	Crc     uint16
 }
 
-// Load - Loads a string; computes type/version/blocks/crc
-func (t *Configuration) Load(payload string) error {
+// NewConfiguration - Loads a string; computes type/version/blocks/crc
+func NewConfiguration(payload string) *Configuration {
+	t := Configuration{}
 	b, err := hex.DecodeString(payload)
 	if err != nil {
-		return err
+		return &t
 	}
 
 	r := bytes.NewReader(b)
-	return binary.Read(r, binary.LittleEndian, t)
+	binary.Read(r, binary.LittleEndian, &t)
+
+	return &t
 }
 
 func (t *Configuration) String() string {

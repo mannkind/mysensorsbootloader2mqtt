@@ -1,40 +1,50 @@
 package ota
 
 import (
+	"bufio"
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 )
 
-const testHex = "../test_files/firmware.hex"
-const nodeRequestHex = "../test_files/1/1/firmware.hex"
+var firmwareTests = []struct {
+	File    string
+	Encoded string
+	Blocks  uint16
+	Crc     uint16
+}{
+	{"../test_files/firmware.hex", "../test_files/firmware.encoded", 80, 18132},
+	{"../test_files/firmware2.hex", "../test_files/firmware2.encoded", 1304, 19151},
+	{"../test_files/firmware3.hex", "../test_files/firmware3.encoded", 1072, 64648},
+}
 
 func TestLoadFirmware(t *testing.T) {
-	var tests = []struct {
-		File   string
-		Blocks uint16
-		Crc    uint16
-	}{
-		{testHex, 80, 18132},
-	}
-
-	for _, f := range tests {
-		firmware := Firmware{}
-		firmware.Load(f.File)
+	for _, f := range firmwareTests {
+		firmware := NewFirmware(f.File)
 
 		if firmware.Blocks != f.Blocks {
-			t.Errorf("Expected %d blocks", f.Blocks)
+			t.Errorf("Incorrect Blocks: Actual: %d; Expected %d", firmware.Blocks, f.Blocks)
 		}
 
 		if firmware.Crc != f.Crc {
-			t.Errorf("Expected a crc of %d", f.Crc)
+			t.Errorf("Incorrect Crc: Actual: %d; Expected %d", firmware.Crc, f.Crc)
+		}
+	}
+}
+
+func TestLoadFirmwareGetBlock(t *testing.T) {
+	for _, f := range firmwareTests {
+		firmware := NewFirmware(f.File)
+
+		if _, err := firmware.Data(f.Blocks); err == nil {
+			t.Errorf("Requested a block %d that should not have existed; this should have errored.", f.Blocks)
 		}
 	}
 }
 
 func TestBadConfigurationRequest(t *testing.T) {
-	c := Configuration{}
-	if err := c.Load("0Z00000000000000"); err == nil {
+	if c := NewConfiguration("0Z00000000000000"); c == nil {
 		t.Error("Z is not a valid hexidecmial character and should have errored.")
 	}
 }
@@ -50,12 +60,11 @@ func TestConfigurationRequest(t *testing.T) {
 		{"0000000000000000", 0, 0, 0, 0},
 		{"010004005000D446", 1, 4, 80, 18132},
 		{"020002003D016A2C", 2, 2, 317, 11370},
-		{"040001001100F329", 4, 1, 17, 10739},
+		{"0B0001001100F329", 11, 1, 17, 10739},
 	}
 
 	for _, v := range tests {
-		c := Configuration{}
-		c.Load(v.Hex)
+		c := NewConfiguration(v.Hex)
 
 		if c.Type != v.Type {
 			t.Errorf("Type does not match. Actual: %d. Expected %d.", c.Type, v.Type)
@@ -80,134 +89,54 @@ func TestConfigurationRequest(t *testing.T) {
 }
 
 func TestBadDataRequest(t *testing.T) {
-	c := Data{}
-	if err := c.Load("0Z00000000000000"); err == nil {
+	if d := NewData("0Z00000000000000"); d.Block != 0 || d.Type != 0 || d.Version != 0 {
 		t.Error("Z is not a valid hexidecmial character and should have errored.")
 	}
 }
 
 func TestDataRequest(t *testing.T) {
-	firmware := Firmware{}
-	firmware.Load(testHex)
+	for _, v := range firmwareTests {
+		firmware := NewFirmware(v.File)
+		fmt.Printf("Testing %s\n", v.File)
 
-	max := uint16(80)
-	payloads := [...]string{
-		"010001004F00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
-		"010001004E00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
-		"010001004D00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
-		"010001004C00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
-		"010001004B00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
-		"010001004A00FFCFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
-		"0100010049008B002097E1F30E940000F9CF0895F894",
-		"0100010048006B010E943E020E947000C0E0D0E00E94",
-		"0100010047000F90DF91CF911F910F91089508950E94",
-		"010001004600611103C01095812301C0812B8C939FBF",
-		"010001004500FF1FEC55FF4FA591B4919FB7F8948C91",
-		"01000100440021F069830E94A6016981E02FF0E0EE0F",
-		"0100010043001491F901E057FF4F04910023C9F08823",
-		"01000100420030E0F901E859FF4F8491F901E458FF4F",
-		"0100010041000F931F93CF93DF931F92CDB7DEB7282F",
-		"010001004000F8948C91822B8C939FBFDF91CF910895",
-		"010001003F00322F309583238C938881822B888304C0",
-		"010001003E008C93888182230AC0623051F4F8948C91",
-		"010001003D00D4919FB7611108C0F8948C9120958223",
-		"010001003C00E255FF4FA591B4918C559F4FFC01C591",
-		"010001003B00FF4F8491882349F190E0880F991FFC01",
-		"010001003A00DF9390E0FC01E458FF4F2491FC01E057",
-		"01000100390003C08091B0008F7D8093B0000895CF93",
-		"01000100380002C084B58F7D84BD08958091B0008F77",
-		"010001003700809180008F7780938000089584B58F77",
-		"0100010036008830B9F08430D1F4809180008F7D03C0",
-		"01000100350028F4813099F08230A1F008958730A9F0",
-		"0100010034008081806880831092C1000895833081F0",
-		"0100010033008460808380818260808380818E7F8083",
-		"010001003200E0EBF0E0808181608083EAE7F0E08081",
-		"010001003100808181608083E1EBF0E0808184608083",
-		"010001003000808182608083808181608083E0E8F0E0",
-		"010001002F00EEE6F0E0808181608083E1E8F0E01082",
-		"010001002E00816084BD85B5826085BD85B5816085BD",
-		"010001002D009F908F900895789484B5826084BD84B5",
-		"010001002C0029F7DDCFFF90EF90DF90CF90BF90AF90",
-		"010001002B0083E0981EA11CB11CC114D104E104F104",
-		"010001002A0070F321E0C21AD108E108F10888EE880E",
-		"010001002900681979098A099B09683E734081059105",
-		"010001002800D104E104F104F1F00E944E020E940E01",
-		"010001002700FF926B017C010E940E014B015C01C114",
-		"01000100260008958F929F92AF92BF92CF92DF92EF92",
-		"010001002500911D43E0660F771F881F991F4A95D1F7",
-		"0100010024003FBF6627782F892F9A2F620F711D811D",
-		"01000100230026B5A89B05C02F3F19F00196A11DB11D",
-		"0100010022008091090190910A01A0910B01B0910C01",
-		"01000100210080910701909108012FBF08953FB7F894",
-		"0100010020001F9018952FB7F8946091050170910601",
-		"010001001F00AF919F918F913F912F910F900FBE0F90",
-		"010001001E00090190930A01A0930B01B0930C01BF91",
-		"010001001D00A0910B01B0910C010196A11DB11D8093",
-		"010001001C00A0930701B09308018091090190910A01",
-		"010001001B00A11DB11D209304018093050190930601",
-		"010001001A0020F40296A11DB11D05C029E8230F0396",
-		"0100010019000701B09108013091040126E0230F2D37",
-		"0100010018009F93AF93BF938091050190910601A091",
-		"0100010017001F920F920FB60F9211242F933F938F93",
-		"0100010016007E438105910508F4A8951F910F910895",
-		"010001001500020130910301601B710B820B930B6038",
-		"01000100140031010E94020100910001109101012091",
-		"0100010013008DE00E94080268EE73E080E090E00E94",
-		"010001001200080268EE73E080E090E00E94310160E0",
-		"0100010011006000A89508950F931F9361E08DE00E94",
-		"01000100100090E00FB6F894A895809360000FBE2093",
-		"010001000F0070930101809302019093030129E288E1",
-		"010001000E0061E08DE00E94CF010E94020160930001",
-		"010001000D00B207E1F70E943F020C944F020C940000",
-		"010001000C00DEBFCDBF21E0A0E0B1E001C01D92AD30",
-		"010001000B000000240027002A0011241FBECFEFD8E0",
-		"010001000A000303030300000000250028002B000000",
-		"01000100090004040404040404040202020202020303",
-		"01000100080010204080010204081020010204081020",
-		"01000100070000030407000000000000000001020408",
-		"0100010006000C946E000C946E000000000800020100",
-		"0100010005000C946E000C946E000C946E000C946E00",
-		"0100010004000C94B8000C946E000C946E000C946E00",
-		"0100010003000C946E000C946E000C946E000C946E00",
-		"0100010002000C946E000C946E000C946E000C946E00",
-		"0100010001000C946E000C946E000C946E000C946E00",
-		"0100010000000C945C000C946E000C946E000C946E00",
-	}
-
-	for i := uint16(0); i < max; i++ {
-		block := max - i - 1
-		blockHex := fmt.Sprintf("%X", block)
-		if len(blockHex) == 1 {
-			blockHex = "0" + blockHex
-		}
-		incoming := strings.Join([]string{"01000100", blockHex, "00"}, "")
-
-		r := Data{}
-		r.Load(incoming)
-
-		expected := payloads[i]
-		data, err := firmware.Data(block)
+		file, err := os.Open(v.Encoded)
 		if err != nil {
-			t.Error(err)
+			t.Errorf("Unable to open %s", v.Encoded)
+		}
+		defer file.Close()
+
+		var payloads []string
+		scanner := bufio.NewScanner(file)
+		for scanner.Scan() {
+			payloads = append(payloads, scanner.Text())
 		}
 
-		if actual := r.String(data); actual != expected {
-			t.Errorf("Payload does not match. Actual: %s. Expected: %s.", actual, expected)
+		for i := uint16(0); i < v.Blocks; i++ {
+			block := v.Blocks - i - 1
+			blockHex := fmt.Sprintf("%X", block)
+			if len(blockHex) == 1 {
+				blockHex = "0" + blockHex
+			}
+			incoming := strings.Join([]string{"01000100", blockHex, "00"}, "")
+
+			r := NewData(incoming)
+			expected := payloads[i]
+			data, err := firmware.Data(block)
+			if err != nil {
+				t.Error(err)
+			}
+
+			if actual := r.String(data); actual != expected {
+				t.Errorf("Payload does not match. Actual: %s. Expected: %s.", actual, expected)
+			}
 		}
+		fmt.Printf("Done Testing %s\n", v.File)
 	}
 }
 
 func TestNoFileFirmware(t *testing.T) {
-	firmware := Firmware{}
-	if err := firmware.Load("/tmp/AFileThatDoesNotExist.hex"); err == nil {
+	if firmware := NewFirmware("/tmp/AFileThatDoesNotExist.hex"); firmware.Blocks != 0 || firmware.Crc != 0 {
 		t.Error("The file does not exist should have errored.")
-	}
-}
-
-func TestFirmwareParseUint16(t *testing.T) {
-	firmware := Firmware{}
-	if val := firmware.parseUint16("99999999"); val != 0 {
-		t.Error("The number was not a valid uint16 and should have returned 0.")
 	}
 }
 
@@ -221,6 +150,9 @@ func defaultTestControl() *Control {
 			},
 			"1": {
 				"type": "1", "version": "1",
+			},
+			"2": {
+				"type": "11", "version": "1",
 			},
 		},
 	}
@@ -248,92 +180,21 @@ func TestControlConfigurationRequest(t *testing.T) {
 func TestControlDataRequest(t *testing.T) {
 	myControl := defaultTestControl()
 
-	max := uint16(80)
-	payloads := [...]string{
-		"010001004F00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
-		"010001004E00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
-		"010001004D00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
-		"010001004C00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
-		"010001004B00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
-		"010001004A00FFCFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
-		"0100010049008B002097E1F30E940000F9CF0895F894",
-		"0100010048006B010E943E020E947000C0E0D0E00E94",
-		"0100010047000F90DF91CF911F910F91089508950E94",
-		"010001004600611103C01095812301C0812B8C939FBF",
-		"010001004500FF1FEC55FF4FA591B4919FB7F8948C91",
-		"01000100440021F069830E94A6016981E02FF0E0EE0F",
-		"0100010043001491F901E057FF4F04910023C9F08823",
-		"01000100420030E0F901E859FF4F8491F901E458FF4F",
-		"0100010041000F931F93CF93DF931F92CDB7DEB7282F",
-		"010001004000F8948C91822B8C939FBFDF91CF910895",
-		"010001003F00322F309583238C938881822B888304C0",
-		"010001003E008C93888182230AC0623051F4F8948C91",
-		"010001003D00D4919FB7611108C0F8948C9120958223",
-		"010001003C00E255FF4FA591B4918C559F4FFC01C591",
-		"010001003B00FF4F8491882349F190E0880F991FFC01",
-		"010001003A00DF9390E0FC01E458FF4F2491FC01E057",
-		"01000100390003C08091B0008F7D8093B0000895CF93",
-		"01000100380002C084B58F7D84BD08958091B0008F77",
-		"010001003700809180008F7780938000089584B58F77",
-		"0100010036008830B9F08430D1F4809180008F7D03C0",
-		"01000100350028F4813099F08230A1F008958730A9F0",
-		"0100010034008081806880831092C1000895833081F0",
-		"0100010033008460808380818260808380818E7F8083",
-		"010001003200E0EBF0E0808181608083EAE7F0E08081",
-		"010001003100808181608083E1EBF0E0808184608083",
-		"010001003000808182608083808181608083E0E8F0E0",
-		"010001002F00EEE6F0E0808181608083E1E8F0E01082",
-		"010001002E00816084BD85B5826085BD85B5816085BD",
-		"010001002D009F908F900895789484B5826084BD84B5",
-		"010001002C0029F7DDCFFF90EF90DF90CF90BF90AF90",
-		"010001002B0083E0981EA11CB11CC114D104E104F104",
-		"010001002A0070F321E0C21AD108E108F10888EE880E",
-		"010001002900681979098A099B09683E734081059105",
-		"010001002800D104E104F104F1F00E944E020E940E01",
-		"010001002700FF926B017C010E940E014B015C01C114",
-		"01000100260008958F929F92AF92BF92CF92DF92EF92",
-		"010001002500911D43E0660F771F881F991F4A95D1F7",
-		"0100010024003FBF6627782F892F9A2F620F711D811D",
-		"01000100230026B5A89B05C02F3F19F00196A11DB11D",
-		"0100010022008091090190910A01A0910B01B0910C01",
-		"01000100210080910701909108012FBF08953FB7F894",
-		"0100010020001F9018952FB7F8946091050170910601",
-		"010001001F00AF919F918F913F912F910F900FBE0F90",
-		"010001001E00090190930A01A0930B01B0930C01BF91",
-		"010001001D00A0910B01B0910C010196A11DB11D8093",
-		"010001001C00A0930701B09308018091090190910A01",
-		"010001001B00A11DB11D209304018093050190930601",
-		"010001001A0020F40296A11DB11D05C029E8230F0396",
-		"0100010019000701B09108013091040126E0230F2D37",
-		"0100010018009F93AF93BF938091050190910601A091",
-		"0100010017001F920F920FB60F9211242F933F938F93",
-		"0100010016007E438105910508F4A8951F910F910895",
-		"010001001500020130910301601B710B820B930B6038",
-		"01000100140031010E94020100910001109101012091",
-		"0100010013008DE00E94080268EE73E080E090E00E94",
-		"010001001200080268EE73E080E090E00E94310160E0",
-		"0100010011006000A89508950F931F9361E08DE00E94",
-		"01000100100090E00FB6F894A895809360000FBE2093",
-		"010001000F0070930101809302019093030129E288E1",
-		"010001000E0061E08DE00E94CF010E94020160930001",
-		"010001000D00B207E1F70E943F020C944F020C940000",
-		"010001000C00DEBFCDBF21E0A0E0B1E001C01D92AD30",
-		"010001000B000000240027002A0011241FBECFEFD8E0",
-		"010001000A000303030300000000250028002B000000",
-		"01000100090004040404040404040202020202020303",
-		"01000100080010204080010204081020010204081020",
-		"01000100070000030407000000000000000001020408",
-		"0100010006000C946E000C946E000000000800020100",
-		"0100010005000C946E000C946E000C946E000C946E00",
-		"0100010004000C94B8000C946E000C946E000C946E00",
-		"0100010003000C946E000C946E000C946E000C946E00",
-		"0100010002000C946E000C946E000C946E000C946E00",
-		"0100010001000C946E000C946E000C946E000C946E00",
-		"0100010000000C945C000C946E000C946E000C946E00",
+	fwTest := firmwareTests[0]
+	file, err := os.Open(fwTest.Encoded)
+	if err != nil {
+		t.Errorf("Unable to open %s", fwTest.Encoded)
+	}
+	defer file.Close()
+
+	var payloads []string
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		payloads = append(payloads, scanner.Text())
 	}
 
-	for i := uint16(0); i < max; i++ {
-		block := max - i - 1
+	for i := uint16(0); i < fwTest.Blocks; i++ {
+		block := fwTest.Blocks - i - 1
 		blockHex := fmt.Sprintf("%X", block)
 		if len(blockHex) == 1 {
 			blockHex = "0" + blockHex
@@ -348,35 +209,32 @@ func TestControlDataRequest(t *testing.T) {
 }
 
 func TestControlFirmwareInfoByNode(t *testing.T) {
-	myControl := defaultTestControl()
-
-	if fmInfo := myControl.firmwareInfo("1", "5", "1"); fmInfo.Type != "1" || fmInfo.Version != "1" || fmInfo.Path != nodeRequestHex || fmInfo.Source != fwNode {
-		t.Errorf("Node: Unexpected node-based type/version/filename: %s, %s, %s", fmInfo.Type, fmInfo.Version, fmInfo.Path)
+	var tests = []struct {
+		Node       string
+		ReqType    uint16
+		ReqVersion uint16
+		Type       uint16
+		Version    uint16
+		Path       string
+		Source     fwSource
+	}{
+		{"1", 5, 1, 1, 1, "../test_files/1/1/firmware.hex", fwNode},
+		{"2", 2, 1, 11, 1, "../test_files/11/1/firmware.hex", fwNode},
+		{"254", 1, 1, 1, 1, "../test_files/1/1/firmware.hex", fwReq},
+		{"254", 254, 254, 1, 1, "../test_files/1/1/firmware.hex", fwDefault},
+		{"254", 254, 254, 0, 0, "", fwUnknown},
 	}
-}
 
-func TestControlFirmwareInfoByRequest(t *testing.T) {
 	myControl := defaultTestControl()
 
-	if fmInfo := myControl.firmwareInfo("254", "1", "1"); fmInfo.Type != "1" || fmInfo.Version != "1" || fmInfo.Path != nodeRequestHex || fmInfo.Source != fwReq {
-		t.Errorf("Request: Unexpected request-based type/version/filename: %s, %s, %s", fmInfo.Type, fmInfo.Version, fmInfo.Path)
-	}
-}
+	for _, v := range tests {
+		if v.Source == fwUnknown {
+			delete(myControl.Nodes, "default")
+		}
 
-func TestControlFirmwareInfoByDefault(t *testing.T) {
-	myControl := defaultTestControl()
-
-	if fmInfo := myControl.firmwareInfo("254", "254", "254"); fmInfo.Type != "1" || fmInfo.Version != "1" || fmInfo.Path != nodeRequestHex || fmInfo.Source != fwDefault {
-		t.Errorf("Default: Unexpected default type/version/filename: %s, %s, %s", fmInfo.Type, fmInfo.Version, fmInfo.Path)
-	}
-}
-
-func TestControlFirmwareInfoByUnknown(t *testing.T) {
-	myControl := defaultTestControl()
-	delete(myControl.Nodes, "default")
-
-	if fmInfo := myControl.firmwareInfo("254", "254", "254"); fmInfo.Type != "0" || fmInfo.Version != "0" || fmInfo.Path != "" || fmInfo.Source != fwUnknown {
-		t.Errorf("Default: Unexpected unknown type/version/filename: %s, %s, %s", fmInfo.Type, fmInfo.Version, fmInfo.Path)
+		if fmInfo := myControl.firmwareInfo(v.Node, v.ReqType, v.ReqVersion); fmInfo.Type != v.Type || fmInfo.Version != v.Version || fmInfo.Path != v.Path || fmInfo.Source != v.Source {
+			t.Errorf("Unexpected type/version/filename - Actual: %d, %d, %s; Expected: %d, %d, %s", fmInfo.Type, fmInfo.Version, fmInfo.Path, v.Type, v.Version, v.Path)
+		}
 	}
 }
 
@@ -400,27 +258,5 @@ func TestControlBootloaderCmd(t *testing.T) {
 		} else if cmd.Type != v.Type || cmd.Version != v.Version || cmd.Blocks != 0 {
 			t.Errorf("Bootloader command (%d, %d) not loaded correctly (%d, %d)", v.Type, v.Version, cmd.Type, cmd.Version)
 		}
-	}
-}
-
-func TestControlParseUint16(t *testing.T) {
-	var tests = []struct {
-		From string
-		Base int
-		To   uint16
-	}{
-		{"0D", 16, 13},
-		{"25", 10, 25},
-	}
-
-	myControl := defaultTestControl()
-	for _, v := range tests {
-		if parsed := myControl.parseUint16(v.From, v.Base); parsed != v.To {
-			t.Errorf("%s was not parsed to %d as expected; parsed as %d instead.", v.From, v.To, parsed)
-		}
-	}
-
-	if val := myControl.parseUint16("99999999", 16); val != 0 {
-		t.Error("The number was not a valid uint16 and should have returned 0.")
 	}
 }
