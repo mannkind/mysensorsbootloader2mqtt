@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"strings"
 	"testing"
 )
 
@@ -113,13 +112,11 @@ func TestDataRequest(t *testing.T) {
 
 		for i := uint16(0); i < v.Blocks; i++ {
 			block := v.Blocks - i - 1
-			blockHex := fmt.Sprintf("%X", block)
-			if len(blockHex) == 1 {
-				blockHex = "0" + blockHex
+			r := Data{
+				Type:    1,
+				Version: 1,
+				Block:   block,
 			}
-			incoming := strings.Join([]string{"01000100", blockHex, "00"}, "")
-
-			r := NewData(incoming)
 			expected := payloads[i]
 			data, err := firmware.Data(block)
 			if err != nil {
@@ -195,11 +192,13 @@ func TestControlDataRequest(t *testing.T) {
 
 	for i := uint16(0); i < fwTest.Blocks; i++ {
 		block := fwTest.Blocks - i - 1
-		blockHex := fmt.Sprintf("%X", block)
-		if len(blockHex) == 1 {
-			blockHex = "0" + blockHex
+		r := Configuration{
+			Type:    1,
+			Version: 1,
+			Blocks:  block,
+			Crc:     0,
 		}
-		request := strings.Join([]string{"01000100", blockHex, "00"}, "")
+		request := r.String()[0:12]
 
 		expected := payloads[i]
 		if actual := myControl.DataRequest("1", request); actual != expected {
