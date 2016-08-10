@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-const version string = "0.2.0"
+const version string = "0.3.0"
 
 var cfgFile string
 var reload = make(chan bool)
@@ -25,6 +25,7 @@ var MysbCmd = &cobra.Command{
 			if err := viper.Unmarshal(&mqtt); err != nil {
 				log.Panicf("Error unmarshaling configuration: %s", err)
 			}
+			mqtt.Control.AutoIDEnabled = len(viper.GetString("control.nextid")) != 0
 
 			if err := mqtt.Start(); err != nil {
 				log.Panicf("Error starting transport.MQTT: %s", err)

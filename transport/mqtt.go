@@ -65,7 +65,9 @@ func (t *MQTT) onConnect(client mqtt.Client) {
 }
 
 func (t *MQTT) idRequest(client mqtt.Client, msg mqtt.Message) {
-	t.publish(client, fmt.Sprintf("%s/255/255/3/0/4", t.Settings.PubTopic), t.Control.IDRequest())
+	if t.Control.AutoIDEnabled {
+		t.publish(client, fmt.Sprintf("%s/255/255/3/0/4", t.Settings.PubTopic), t.Control.IDRequest())
+	}
 }
 
 func (t *MQTT) configurationRequest(client mqtt.Client, msg mqtt.Message) {

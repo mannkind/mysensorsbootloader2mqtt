@@ -9,6 +9,7 @@ import (
 
 // Control - Control the interaction of Transport and OTA
 type Control struct {
+	AutoIDEnabled    bool
 	NextID           uint8
 	FirmwareBasePath string
 	Nodes            map[string]map[string]string

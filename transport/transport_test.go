@@ -37,16 +37,28 @@ func defaultTestMQTT() *MQTT {
 
 func TestMqttIDRequest(t *testing.T) {
 	myMQTT := defaultTestMQTT()
-	msg := &mockMessage{
-		topic:   fmt.Sprintf("%s/255/255/3/0/3", myMQTT.Settings.SubTopic),
-		payload: []byte(""),
+	var tests = []struct {
+		Request       string
+		Response      string
+		AutoIDEnabled bool
+	}{
+		{fmt.Sprintf("%s/255/255/3/0/3", myMQTT.Settings.SubTopic), fmt.Sprintf("%s/255/255/3/0/4 %s", myMQTT.Settings.PubTopic, "13"), true},
+		{fmt.Sprintf("%s/255/255/3/0/3", myMQTT.Settings.SubTopic), "", false},
 	}
+	for _, v := range tests {
+		msg := &mockMessage{
+			topic:   v.Request,
+			payload: []byte(""),
+		}
 
-	expected := fmt.Sprintf("%s/255/255/3/0/4 %s", myMQTT.Settings.PubTopic, "13")
+		expected := v.Response
 
-	myMQTT.idRequest(testClient, msg)
-	if myMQTT.LastPublished != expected {
-		t.Errorf("Wrong topic or payload - Actual: %s, Expected: %s", myMQTT.LastPublished, expected)
+		myMQTT.LastPublished = ""
+		myMQTT.Control.AutoIDEnabled = v.AutoIDEnabled
+		myMQTT.idRequest(testClient, msg)
+		if myMQTT.LastPublished != expected {
+			t.Errorf("Wrong topic or payload - Actual: %s, Expected: %s", myMQTT.LastPublished, expected)
+		}
 	}
 }
 
