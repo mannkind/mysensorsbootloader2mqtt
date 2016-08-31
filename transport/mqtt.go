@@ -16,6 +16,8 @@ type MQTT struct {
 		Broker   string
 		SubTopic string
 		PubTopic string
+		Username string
+		Password string
 	}
 	Control       ota.Control
 	LastPublished string
@@ -23,14 +25,16 @@ type MQTT struct {
 
 // Start - Connect and Subscribe
 func (t *MQTT) Start() error {
-	log.Println("Connecting to MQTT")
+	log.Println("Connecting to MQTT: ", t.Settings.Broker)
 	opts := mqtt.NewClientOptions().
 		AddBroker(t.Settings.Broker).
 		SetClientID(t.Settings.ClientID).
 		SetOnConnectHandler(t.onConnect).
 		SetConnectionLostHandler(func(client mqtt.Client, err error) {
 			log.Printf("Disconnected from MQTT: %s.", err)
-		})
+		}).
+		SetUsername(t.Settings.Username).
+                SetPassword(t.Settings.Password)
 
 	t.Client = mqtt.NewClient(opts)
 	if token := t.Client.Connect(); token.Wait() && token.Error() != nil {

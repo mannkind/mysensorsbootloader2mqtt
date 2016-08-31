@@ -3,6 +3,8 @@ settings:
     broker:   'tcp://mosquitto:1883'
     subtopic: 'mysensors_rx'
     pubtopic: 'mysensors_tx'
+    username: ''
+    password: ''
 
 control:
     nextid: 1
