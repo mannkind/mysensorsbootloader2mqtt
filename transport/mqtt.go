@@ -34,7 +34,7 @@ func (t *MQTT) Start() error {
 			log.Printf("Disconnected from MQTT: %s.", err)
 		}).
 		SetUsername(t.Settings.Username).
-                SetPassword(t.Settings.Password)
+		SetPassword(t.Settings.Password)
 
 	t.Client = mqtt.NewClient(opts)
 	if token := t.Client.Connect(); token.Wait() && token.Error() != nil {
