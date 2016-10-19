@@ -141,16 +141,10 @@ func defaultTestControl() *Control {
 	control := Control{
 		NextID:           12,
 		FirmwareBasePath: "../test_files",
-		Nodes: map[string]map[string]string{
-			"default": {
-				"type": "1", "version": "1",
-			},
-			"1": {
-				"type": "1", "version": "1",
-			},
-			"2": {
-				"type": "11", "version": "1",
-			},
+		Nodes: map[string]NodeSettings{
+			"default": {1, 1, false},
+			"1":       {1, 1, false},
+			"2":       {11, 1, false},
 		},
 	}
 	return &control
@@ -237,25 +231,25 @@ func TestControlFirmwareInfoByNode(t *testing.T) {
 	}
 }
 
-func TestControlBootloaderCmd(t *testing.T) {
+func TestControlQueuedCommand(t *testing.T) {
 	var tests = []struct {
 		To      string
-		Cmd     string
+		Topic   string
 		Payload string
-		Type    uint16
-		Version uint16
 	}{
-		{"1", "1", "", 1, 0},
-		{"2", "2", "13", 2, 13},
+		{"1", "test/1/255/1/0/1", "Test Payload"},
+		{"2", "test/2/255/1/0/1", "Payload Test"},
+		{"1", "test/1/255/3/0/3", "Payload Skipped"},
+		{"3", "", ""},
 	}
 
 	for _, v := range tests {
 		myControl := defaultTestControl()
-		myControl.BootloaderCommand(v.To, v.Cmd, v.Payload)
-		if cmd, ok := myControl.Commands[v.To]; !ok {
-			t.Error("Bootloader command not found")
-		} else if cmd.Type != v.Type || cmd.Version != v.Version || cmd.Blocks != 0 {
-			t.Errorf("Bootloader command (%d, %d) not loaded correctly (%d, %d)", v.Type, v.Version, cmd.Type, cmd.Version)
+		myControl.QueuedCommand(v.To, v.Topic, v.Payload)
+		for _, cmd := range myControl.Commands[v.To] {
+			if cmd.Topic != v.Topic || cmd.Payload != v.Payload {
+				t.Errorf("Unexpected topic/payload- Actual: %s, %s; Expected: %s, %s", v.Topic, cmd.Topic, v.Payload, cmd.Payload)
+			}
 		}
 	}
 }

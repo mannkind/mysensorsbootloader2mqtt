@@ -2,10 +2,11 @@ package transport
 
 import (
 	"fmt"
-	"github.com/eclipse/paho.mqtt.golang"
-	"github.com/mannkind/mysb/ota"
 	"log"
 	"strings"
+
+	"github.com/eclipse/paho.mqtt.golang"
+	"github.com/mannkind/mysb/ota"
 )
 
 // MQTT - MQTT all the things!
@@ -50,9 +51,17 @@ func (t *MQTT) onConnect(client mqtt.Client) {
 	// Subscribe to topics
 	subscriptions := map[string]mqtt.MessageHandler{
 		fmt.Sprintf("%s/255/255/3/0/3", t.Settings.SubTopic): t.idRequest,
+		fmt.Sprintf("%s/+/255/3/0/22", t.Settings.SubTopic):  t.heartbeatResponse,
 		fmt.Sprintf("%s/+/255/4/0/0", t.Settings.SubTopic):   t.configurationRequest,
 		fmt.Sprintf("%s/+/255/4/0/2", t.Settings.SubTopic):   t.dataRequest,
-		"mysensors/bootloader/+/+":                           t.bootloaderCommand,
+	}
+
+	// Subscribe to battery node messages for queuing purposes
+	for node, settings := range t.Control.Nodes {
+		if settings.QueueMessages {
+			sub := fmt.Sprintf("%s/%s/#", t.Settings.PubTopic, node)
+			subscriptions[sub] = t.queuedCommand
+		}
 	}
 
 	//
@@ -74,15 +83,36 @@ func (t *MQTT) idRequest(client mqtt.Client, msg mqtt.Message) {
 	}
 }
 
+func (t *MQTT) heartbeatResponse(client mqtt.Client, msg mqtt.Message) {
+	topic := msg.Topic()
+	to := strings.Split(topic, "/")[1]
+
+	if t.Control.Commands[to] == nil || len(t.Control.Commands[to]) == 0 {
+		return
+	}
+
+	// Unsubscribe; Republish all the commands; Resubscribe
+	sub := fmt.Sprintf("%s/%s/#", t.Settings.PubTopic, to)
+
+	if unsubtoken := client.Unsubscribe(sub); unsubtoken.Wait() && unsubtoken.Error() != nil {
+		log.Printf("Unsubscribe Error: %s", unsubtoken.Error())
+	}
+
+	for _, cmd := range t.Control.Commands[to] {
+		log.Printf("Queued Command (Republish): To: %s; Topic: %s; Payload: %s\n", to, cmd.Topic, cmd.Payload)
+		t.publish(client, cmd.Topic, cmd.Payload)
+	}
+	t.Control.QueuedCommand(to, "", "")
+
+	if subtoken := client.Subscribe(sub, 0, t.queuedCommand); subtoken.Wait() && subtoken.Error() != nil {
+		log.Printf("Subscribe Error: %s", subtoken.Error())
+	}
+}
+
 func (t *MQTT) configurationRequest(client mqtt.Client, msg mqtt.Message) {
 	topic := msg.Topic()
 	payload := string(msg.Payload())
 	to := strings.Split(topic, "/")[1]
-
-	// Attempt to run any bootloader commands
-	if t.runBootloaderCommand(client, to) {
-		return
-	}
 
 	t.publish(client, fmt.Sprintf("%s/%s/255/4/0/1", t.Settings.PubTopic, to), t.Control.ConfigurationRequest(to, payload))
 }
@@ -96,28 +126,12 @@ func (t *MQTT) dataRequest(client mqtt.Client, msg mqtt.Message) {
 	t.publish(client, fmt.Sprintf("%s/%s/255/4/0/3", t.Settings.PubTopic, to), t.Control.DataRequest(to, payload))
 }
 
-func (t *MQTT) bootloaderCommand(client mqtt.Client, msg mqtt.Message) {
+func (t *MQTT) queuedCommand(client mqtt.Client, msg mqtt.Message) {
 	topic := msg.Topic()
 	payload := string(msg.Payload())
+	to := strings.Split(topic, "/")[1]
 
-	parts := strings.Split(topic, "/")
-	to := parts[2]
-	cmd := parts[3]
-
-	t.Control.BootloaderCommand(to, cmd, payload)
-}
-
-func (t *MQTT) runBootloaderCommand(client mqtt.Client, to string) bool {
-	if blcmd, ok := t.Control.Commands[to]; ok {
-		outTopic := fmt.Sprintf("%s/%s/255/4/0/1", t.Settings.PubTopic, to)
-		outPayload := blcmd.String()
-		t.publish(client, outTopic, outPayload)
-
-		delete(t.Control.Commands, to)
-		return true
-	}
-
-	return false
+	t.Control.QueuedCommand(to, topic, payload)
 }
 
 func (t *MQTT) publish(client mqtt.Client, topic string, payload string) {

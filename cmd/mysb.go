@@ -1,15 +1,16 @@
 package cmd
 
 import (
+	"log"
+	"time"
+
 	"github.com/fsnotify/fsnotify"
 	"github.com/mannkind/mysb/transport"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"log"
-	"time"
 )
 
-const version string = "0.3.0"
+const version string = "0.4.0"
 
 var cfgFile string
 var reload = make(chan bool)

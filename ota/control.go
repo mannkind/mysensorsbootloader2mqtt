@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strconv"
+	"strings"
 )
 
 // Control - Control the interaction of Transport and OTA
@@ -12,8 +12,21 @@ type Control struct {
 	AutoIDEnabled    bool
 	NextID           uint8
 	FirmwareBasePath string
-	Nodes            map[string]map[string]string
-	Commands         map[string]Configuration
+	Nodes            map[string]NodeSettings
+	Commands         map[string][]QueuedCommand
+}
+
+// NodeSettings - The settings for a node
+type NodeSettings struct {
+	Type          uint16
+	Version       uint16
+	QueueMessages bool
+}
+
+// QueuedCommand - A queued command for sleeping nodes
+type QueuedCommand struct {
+	Topic   string
+	Payload string
 }
 
 // fwSource - The source of firmware
@@ -68,18 +81,11 @@ func (c Control) firmwareInfoAssignment(nodeID string, source fwSource) fwInfo {
 	}
 
 	// Attempt to load firmware from the assignment in config.yaml
-	nodeMapping := c.Nodes[nodeID]
-	if nodeMapping != nil {
-		fwType, _ := nodeMapping["type"]
-		fwVersion, _ := nodeMapping["version"]
-		fwTypeParsed, _ := strconv.ParseUint(fwType, 10, 16)
-		fwVersionParsed, _ := strconv.ParseUint(fwVersion, 10, 16)
-
-		fw.Type = uint16(fwTypeParsed)
-		fw.Version = uint16(fwVersionParsed)
-		fw.Path = fmt.Sprintf("%s/%d/%d/firmware.hex", c.FirmwareBasePath, fw.Type, fw.Version)
-		fw.Source = source
-	}
+	nodeSettings := c.Nodes[nodeID]
+	fw.Type = nodeSettings.Type
+	fw.Version = nodeSettings.Version
+	fw.Path = fmt.Sprintf("%s/%d/%d/firmware.hex", c.FirmwareBasePath, fw.Type, fw.Version)
+	fw.Source = source
 
 	return fw
 }
@@ -133,28 +139,45 @@ func (c *Control) DataRequest(to string, payload string) string {
 	return resp.String(data)
 }
 
-// BootloaderCommand - Handle bootloader commands
-// Bootloader commands:
-// * 0x01 - Erase EEPROM
-// * 0x02 - Set NodeID
-// * 0x03 - Set ParentID
-func (c *Control) BootloaderCommand(to string, cmd string, payload string) {
-	blCmd, _ := strconv.ParseUint(cmd, 10, 16)
-	resp := Configuration{
-		Type:    uint16(blCmd),
-		Version: 0,
-		Blocks:  0,
-		Crc:     0xDA7A,
+// QueuedCommand - Handle queued commands to nodes
+func (c *Control) QueuedCommand(to string, topic string, payload string) {
+	// Reset any queued commands on blank topic/payload
+	if topic == "" && payload == "" {
+		log.Printf("Queued Command (Reset): To: %s\n", to)
+		if c.Commands == nil {
+			c.Commands = make(map[string][]QueuedCommand)
+		}
+		c.Commands[to] = make([]QueuedCommand, 0)
+		return
 	}
 
-	if resp.Type == 0x02 || resp.Type == 0x03 {
-		blVersion, _ := strconv.ParseUint(payload, 10, 16)
-		resp.Version = uint16(blVersion)
+	parts := strings.Split(topic, "/")
+	msgType := parts[3]
+	subType := parts[5]
+
+	skipMsgTypes := map[string]bool{
+		"0": true, // Presentation
+		"4": true, // Stream for OTA
 	}
 
-	log.Printf("Bootloader Command: To: %s; Cmd: %s; Payload: %s\n", to, cmd, payload)
+	includeInternalSubTypes := map[string]bool{
+		"4":  true, // ID Response
+		"8":  true, // ParentID Repsonse
+		"13": true, // Reboot
+	}
+
+	if skipMsgTypes[msgType] || (msgType == "3" && !includeInternalSubTypes[subType]) {
+		return
+	}
+
 	if c.Commands == nil {
-		c.Commands = make(map[string]Configuration)
+		c.Commands = make(map[string][]QueuedCommand)
 	}
-	c.Commands[to] = resp
+
+	if c.Commands[to] == nil {
+		c.Commands[to] = make([]QueuedCommand, 0)
+	}
+
+	log.Printf("Queued Command (Saved): To: %s; Topic: %s; Payload: %s\n", to, topic, payload)
+	c.Commands[to] = append(c.Commands[to], QueuedCommand{topic, payload})
 }

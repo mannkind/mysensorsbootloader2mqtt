@@ -1,6 +1,13 @@
 language: go
 go:
-  - tip
+  - 1.4
+  - 1.5
+  - 1.6
+  - 1.7
+  - 1.8
+matrix:
+  allow_failures:
+  - go: 1.8 
 before_install:
   - go get github.com/modocache/gover
 script:
