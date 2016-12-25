@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-const version string = "0.4.0"
+const version string = "0.4.1"
 
 var cfgFile string
 var reload = make(chan bool)
@@ -32,13 +32,10 @@ var MysbCmd = &cobra.Command{
 				log.Panicf("Error starting transport.MQTT: %s", err)
 			}
 
-			select {
-			case <-reload:
-				if mqtt.Client != nil && mqtt.Client.IsConnected() {
-					mqtt.Client.Disconnect(0)
-					time.Sleep(500 * time.Millisecond)
-				}
-				continue
+			<-reload
+			if mqtt.Client != nil && mqtt.Client.IsConnected() {
+				mqtt.Client.Disconnect(0)
+				time.Sleep(500 * time.Millisecond)
 			}
 		}
 	},

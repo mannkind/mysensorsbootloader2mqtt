@@ -83,7 +83,7 @@ func TestMqttHeartbeatResponse(t *testing.T) {
 
 		myMQTT.Control.Commands = make(map[string][]ota.QueuedCommand)
 		if v.HasCmd {
-			myMQTT.Control.Commands[v.To] = append(myMQTT.Control.Commands[v.To], ota.QueuedCommand{"Test Topic", "Test Payload"})
+			myMQTT.Control.Commands[v.To] = append(myMQTT.Control.Commands[v.To], ota.QueuedCommand{Topic: "Test Topic", Payload: "Test Payload"})
 		}
 
 		expected := v.Response

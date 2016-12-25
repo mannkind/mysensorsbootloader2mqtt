@@ -10,9 +10,12 @@ A Firmware Uploading Tool for the MYSBootloader via MQTT
 
 # Installation
 
-* go get github.com/mannkind/mysb
-* go intall github.com/mannkind/mysb
-* mysb -c */the/path/to/config.yaml*
+```
+git clone https://github.com/mannkind/mysb
+cd mysb
+make
+./bin/mysb -c */the/path/to/config.yaml*
+```
 
 # Configuration
 

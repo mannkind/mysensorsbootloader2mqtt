@@ -2,8 +2,9 @@ package ota
 
 import (
 	"fmt"
-	"github.com/kierdavis/ihex-go"
 	"os"
+
+	"github.com/kierdavis/ihex-go"
 )
 
 const firmwareBlockSize uint16 = 16
@@ -85,5 +86,6 @@ func (f Firmware) Data(block uint16) ([]byte, error) {
 		return []byte{}, fmt.Errorf("Block %d cannot be found in the firmware data.", block)
 	}
 
-	return f.data[fromBlock:toBlock], nil
+	data := f.data[fromBlock:toBlock]
+	return append(make([]byte, 0, len(data)), data...), nil
 }
