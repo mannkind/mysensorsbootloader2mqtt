@@ -253,3 +253,26 @@ func TestControlQueuedCommand(t *testing.T) {
 		}
 	}
 }
+
+func TestControlBootloaderCmd(t *testing.T) {
+	var tests = []struct {
+		To      string
+		Cmd     string
+		Payload string
+		Type    uint16
+		Version uint16
+	}{
+		{"1", "1", "", 1, 0},
+		{"2", "2", "13", 2, 13},
+	}
+
+	for _, v := range tests {
+		myControl := defaultTestControl()
+		myControl.BootloaderCommand(v.To, v.Cmd, v.Payload)
+		if cmd, ok := myControl.BootloaderCommands[v.To]; !ok {
+			t.Error("Bootloader command not found")
+		} else if cmd.Type != v.Type || cmd.Version != v.Version || cmd.Blocks != 0 {
+			t.Errorf("Bootloader command (%d, %d) not loaded correctly (%d, %d)", v.Type, v.Version, cmd.Type, cmd.Version)
+		}
+	}
+}

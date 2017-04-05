@@ -1,4 +1,4 @@
-package transport
+package controller
 
 import (
 	"fmt"
@@ -13,11 +13,11 @@ const nodeRequestHex = "../test_files/1/1/firmware.hex"
 
 var testClient = mqtt.NewClient(mqtt.NewClientOptions())
 
-func defaultTestMQTT() *MQTT {
+func defaultTestMQTT() *MysbMQTT {
 	var testConfig = `
         settings:
           clientid: 'GoMySysBootloader'
-          broker: "tcp://test.mosquitto.org:1883"
+          broker: "tcp://fake.mosquitto.org:1883"
           subtopic: 'mysensors_rx'
           pubtopic: 'mysensors_tx'
 
@@ -29,7 +29,7 @@ func defaultTestMQTT() *MQTT {
                 1: { type: 1, version: 1, queueMessages: true }
     `
 
-	myMqtt := MQTT{}
+	myMqtt := MysbMQTT{}
 	err := yaml.Unmarshal([]byte(testConfig), &myMqtt)
 	if err != nil {
 		panic(err)
@@ -64,7 +64,7 @@ func TestMqttIDRequest(t *testing.T) {
 	}
 }
 
-func TestMqttHeartbeatResponse(t *testing.T) {
+func TestMqttPresleepResponse(t *testing.T) {
 	myMQTT := defaultTestMQTT()
 	var tests = []struct {
 		HasCmd   bool
@@ -89,7 +89,7 @@ func TestMqttHeartbeatResponse(t *testing.T) {
 		expected := v.Response
 
 		myMQTT.LastPublished = ""
-		myMQTT.heartbeatResponse(testClient, msg)
+		myMQTT.presleepResponse(testClient, msg)
 		if myMQTT.LastPublished != expected {
 			t.Errorf("Wrong topic or payload - Actual: %s, Expected: %s", myMQTT.LastPublished, expected)
 		}
@@ -125,6 +125,47 @@ func TestMqttDataRequest(t *testing.T) {
 	}
 }
 
+func TestMqttBootloaderCommand(t *testing.T) {
+	myMQTT := defaultTestMQTT()
+	var tests = []struct {
+		To              string
+		Cmd             string
+		Payload         string
+		ExpectedPayload string
+	}{
+		{"1", "1", "", "0100000000007ADA"},
+		{"2", "2", "9", "0200090000007ADA"},
+	}
+
+	for _, v := range tests {
+		msg := &mockMessage{
+			topic:   fmt.Sprintf("mysensors/bootloader/%s/%s", v.To, v.Cmd),
+			payload: []byte(v.Payload),
+		}
+
+		myMQTT.bootloaderCommand(testClient, msg)
+		if _, ok := myMQTT.Control.BootloaderCommands[v.To]; !ok {
+			t.Error("Bootloader command not found")
+		} else {
+			if ok := myMQTT.runBootloaderCommand(testClient, v.To); !ok {
+				t.Error("Bootloader command not run")
+			} else {
+				expected := fmt.Sprintf("%s/%s/255/4/0/1 %s", myMQTT.Settings.PubTopic, v.To, v.ExpectedPayload)
+				if myMQTT.LastPublished != expected {
+					t.Errorf("Wrong topic or payload - Actual: %s, Expected: %s", myMQTT.LastPublished, expected)
+				}
+			}
+		}
+	}
+}
+
+func TestMqttBadBootloaderCommand(t *testing.T) {
+	myMQTT := defaultTestMQTT()
+	if ok := myMQTT.runBootloaderCommand(testClient, "1"); ok {
+		t.Error("Bootloader command didn't exist, should not have returned true")
+	}
+}
+
 func TestMqttQueuedCommand(t *testing.T) {
 	myMQTT := defaultTestMQTT()
 	var tests = []struct {
@@ -144,7 +185,7 @@ func TestMqttQueuedCommand(t *testing.T) {
 		}
 
 		myMQTT.queuedCommand(testClient, msg)
-		myMQTT.heartbeatResponse(testClient, msg)
+		myMQTT.presleepResponse(testClient, msg)
 		for _ = range myMQTT.Control.Commands[v.To] {
 			expected := fmt.Sprintf("%s %s", v.Topic, v.Payload)
 			if myMQTT.LastPublished != expected {
@@ -156,9 +197,11 @@ func TestMqttQueuedCommand(t *testing.T) {
 
 func TestMqttStart(t *testing.T) {
 	myMQTT := defaultTestMQTT()
-	if err := myMQTT.Start(); err != nil {
-		t.Error("Something went wrong starting!")
+	if err := myMQTT.Start(); err == nil {
+		t.Error("Something went wrong; expected a failure to connect!")
 	}
+
+	myMQTT.Stop()
 }
 
 func TestMqttConnect(t *testing.T) {

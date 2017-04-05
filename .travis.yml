@@ -3,9 +3,10 @@ go:
   - 1.6
   - 1.7
   - 1.8
+  - 1.9
 matrix:
   allow_failures:
-  - go: 1.8 
+  - go: 1.9 
 script:
   - make setup
   - make

@@ -2,15 +2,12 @@ package cmd
 
 import (
 	"log"
-	"time"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/mannkind/mysb/transport"
+	"github.com/mannkind/mysb/controller"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
-
-const version string = "0.4.1"
 
 var cfgFile string
 var reload = make(chan bool)
@@ -22,21 +19,17 @@ var MysbCmd = &cobra.Command{
 	Long:  "A Firmware Uploading Tool for the MYSBootloader via MQTT",
 	Run: func(cmd *cobra.Command, args []string) {
 		for {
-			mqtt := transport.MQTT{}
-			if err := viper.Unmarshal(&mqtt); err != nil {
+			controller := controller.MysbMQTT{}
+			if err := viper.Unmarshal(&controller); err != nil {
 				log.Panicf("Error unmarshaling configuration: %s", err)
 			}
-			mqtt.Control.AutoIDEnabled = len(viper.GetString("control.nextid")) != 0
 
-			if err := mqtt.Start(); err != nil {
-				log.Panicf("Error starting transport.MQTT: %s", err)
+			if err := controller.Start(); err != nil {
+				log.Panicf("Error starting controller: %s", err)
 			}
 
 			<-reload
-			if mqtt.Client != nil && mqtt.Client.IsConnected() {
-				mqtt.Client.Disconnect(0)
-				time.Sleep(500 * time.Millisecond)
-			}
+			controller.Stop()
 		}
 	},
 }
@@ -49,8 +42,6 @@ func Execute() {
 }
 
 func init() {
-	log.Printf("Mysb Version: %s", version)
-
 	cobra.OnInitialize(func() {
 		viper.SetConfigFile(cfgFile)
 		viper.WatchConfig()

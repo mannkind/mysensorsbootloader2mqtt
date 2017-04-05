@@ -29,6 +29,7 @@ settings:
     pubtopic: 'mysensors_tx'
 
 control:
+    autoidenabled: true   
     nextid: 12
     firmwarebasepath: '/Data/mysb/firmware'
     nodes:

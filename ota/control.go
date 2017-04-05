@@ -4,16 +4,18 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 )
 
 // Control - Control the interaction of Transport and OTA
 type Control struct {
-	AutoIDEnabled    bool
-	NextID           uint8
-	FirmwareBasePath string
-	Nodes            map[string]NodeSettings
-	Commands         map[string][]QueuedCommand
+	AutoIDEnabled      bool
+	NextID             uint8
+	FirmwareBasePath   string
+	Nodes              map[string]NodeSettings
+	BootloaderCommands map[string]Configuration
+	Commands           map[string][]QueuedCommand
 }
 
 // NodeSettings - The settings for a node
@@ -137,6 +139,32 @@ func (c *Control) DataRequest(to string, payload string) string {
 
 	data, _ := firmware.Data(req.Block)
 	return resp.String(data)
+}
+
+// BootloaderCommand - Handle bootloader commands
+// Bootloader commands:
+// * 0x01 - Erase EEPROM
+// * 0x02 - Set NodeID
+// * 0x03 - Set ParentID
+func (c *Control) BootloaderCommand(to string, cmd string, payload string) {
+	blCmd, _ := strconv.ParseUint(cmd, 10, 16)
+	resp := Configuration{
+		Type:    uint16(blCmd),
+		Version: 0,
+		Blocks:  0,
+		Crc:     0xDA7A,
+	}
+
+	if resp.Type == 0x02 || resp.Type == 0x03 {
+		blVersion, _ := strconv.ParseUint(payload, 10, 16)
+		resp.Version = uint16(blVersion)
+	}
+
+	log.Printf("Bootloader Command: To: %s; Cmd: %s; Payload: %s\n", to, cmd, payload)
+	if c.BootloaderCommands == nil {
+		c.BootloaderCommands = make(map[string]Configuration)
+	}
+	c.BootloaderCommands[to] = resp
 }
 
 // QueuedCommand - Handle queued commands to nodes
