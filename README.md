@@ -10,11 +10,24 @@ A Firmware Uploading Tool for the MYSBootloader via MQTT
 
 # Installation
 
+## Via Docker
+```
+docker run -d --name="mysb" -v /the/path/to/config_folder:/config -v /etc/localtime:/etc/localtime:ro mannkind/mysb
+```
+
+## Via Make
 ```
 git clone https://github.com/mannkind/mysb
 cd mysb
 make
-./bin/mysb -c */the/path/to/config.yaml*
+./bin/mysb -c */the/path/to/config_folder/config.yaml*
+```
+
+## Via Go
+```
+go get -u github.com/mannkind/mysb
+go install github.com/mannkind/mysb
+mysb -c */the/path/to/config_folder/config.yaml*
 ```
 
 # Configuration
@@ -31,7 +44,7 @@ settings:
 control:
     autoidenabled: true   
     nextid: 12
-    firmwarebasepath: '/Data/mysb/firmware'
+    firmwarebasepath: '/the/path/to/config_folder/firmware'
     nodes:
         default: {
             type: 1,
@@ -69,23 +82,23 @@ The firmware a node is using is a combination of a `type` and a `version`. The p
 
 The location of the firmware picked is relative to the `control['firmwarebasepath']` setting in config.yaml.
 
-E.g. *control['firmwarebasepath']*/*type*/*version*/firmware.hex
+E.g. /path/to/config_folder/firmware/_type_/_version_/firmware.hex
 
 ```
-$ find /Data/mysb/firmware
-/Data/mysb/firmware/3
-/Data/mysb/firmware/3/1
-/Data/mysb/firmware/3/1/firmware.hex
-/Data/mysb/firmware/2
-/Data/mysb/firmware/2/1
-/Data/mysb/firmware/2/1/firmware.hex
-/Data/mysb/firmware/2/2
-/Data/mysb/firmware/2/2/firmware.hex
-/Data/mysb/firmware/2/3
-/Data/mysb/firmware/2/3/firmware.hex
-/Data/mysb/firmware/1
-/Data/mysb/firmware/1/1
-/Data/mysb/firmware/1/1/firmware.hex
-/Data/mysb/firmware/1/2
-/Data/mysb/firmware/1/2/firmware.hex
+$ find /path/to/config_folder/firmware
+/path/to/config_folder/firmware/3
+/path/to/config_folder/firmware/3/1
+/path/to/config_folder/firmware/3/1/firmware.hex
+/path/to/config_folder/firmware/2
+/path/to/config_folder/firmware/2/1
+/path/to/config_folder/firmware/2/1/firmware.hex
+/path/to/config_folder/firmware/2/2
+/path/to/config_folder/firmware/2/2/firmware.hex
+/path/to/config_folder/firmware/2/3
+/path/to/config_folder/firmware/2/3/firmware.hex
+/path/to/config_folder/firmware/1
+/path/to/config_folder/firmware/1/1
+/path/to/config_folder/firmware/1/1/firmware.hex
+/path/to/config_folder/firmware/1/2
+/path/to/config_folder/firmware/1/2/firmware.hex
 ```
