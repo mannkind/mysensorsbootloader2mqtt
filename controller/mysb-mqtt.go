@@ -177,7 +177,7 @@ func (t *MysbMQTT) runBootloaderCommand(client mqtt.Client, to string) bool {
 		outPayload := blcmd.String()
 		t.publish(client, outTopic, outPayload)
 
-		delete(t.Control.Commands, to)
+		delete(t.Control.BootloaderCommands, to)
 		return true
 	}
 
