@@ -1,10 +1,12 @@
-package ota
+package handlers
 
 import (
 	"bufio"
 	"fmt"
 	"os"
 	"testing"
+
+	"github.com/mannkind/mysb/ota"
 )
 
 var firmwareTests = []struct {
@@ -20,7 +22,7 @@ var firmwareTests = []struct {
 
 func TestLoadFirmware(t *testing.T) {
 	for _, f := range firmwareTests {
-		firmware := NewFirmware(f.File)
+		firmware := ota.NewFirmware(f.File)
 
 		if firmware.Blocks != f.Blocks {
 			t.Errorf("Incorrect Blocks: Actual: %d; Expected %d", firmware.Blocks, f.Blocks)
@@ -34,7 +36,7 @@ func TestLoadFirmware(t *testing.T) {
 
 func TestLoadFirmwareGetBlock(t *testing.T) {
 	for _, f := range firmwareTests {
-		firmware := NewFirmware(f.File)
+		firmware := ota.NewFirmware(f.File)
 
 		if _, err := firmware.Data(f.Blocks); err == nil {
 			t.Errorf("Requested a block %d that should not have existed; this should have errored.", f.Blocks)
@@ -43,7 +45,7 @@ func TestLoadFirmwareGetBlock(t *testing.T) {
 }
 
 func TestBadConfigurationRequest(t *testing.T) {
-	if c := NewConfiguration("0Z00000000000000"); c == nil {
+	if c := ota.NewConfiguration("0Z00000000000000"); c == nil {
 		t.Error("Z is not a valid hexidecmial character and should have errored.")
 	}
 }
@@ -63,7 +65,7 @@ func TestConfigurationRequest(t *testing.T) {
 	}
 
 	for _, v := range tests {
-		c := NewConfiguration(v.Hex)
+		c := ota.NewConfiguration(v.Hex)
 
 		if c.Type != v.Type {
 			t.Errorf("Type does not match. Actual: %d. Expected %d.", c.Type, v.Type)
@@ -88,14 +90,14 @@ func TestConfigurationRequest(t *testing.T) {
 }
 
 func TestBadDataRequest(t *testing.T) {
-	if d := NewData("0Z00000000000000"); d.Block != 0 || d.Type != 0 || d.Version != 0 {
+	if d := ota.NewData("0Z00000000000000"); d.Block != 0 || d.Type != 0 || d.Version != 0 {
 		t.Error("Z is not a valid hexidecmial character and should have errored.")
 	}
 }
 
 func TestDataRequest(t *testing.T) {
 	for _, v := range firmwareTests {
-		firmware := NewFirmware(v.File)
+		firmware := ota.NewFirmware(v.File)
 		fmt.Printf("Testing %s\n", v.File)
 
 		file, err := os.Open(v.Encoded)
@@ -112,7 +114,7 @@ func TestDataRequest(t *testing.T) {
 
 		for i := uint16(0); i < v.Blocks; i++ {
 			block := v.Blocks - i - 1
-			r := Data{
+			r := ota.Data{
 				Type:    1,
 				Version: 1,
 				Block:   block,
@@ -132,7 +134,7 @@ func TestDataRequest(t *testing.T) {
 }
 
 func TestNoFileFirmware(t *testing.T) {
-	if firmware := NewFirmware("/tmp/AFileThatDoesNotExist.hex"); firmware.Blocks != 0 || firmware.Crc != 0 {
+	if firmware := ota.NewFirmware("/tmp/AFileThatDoesNotExist.hex"); firmware.Blocks != 0 || firmware.Crc != 0 {
 		t.Error("The file does not exist should have errored.")
 	}
 }
@@ -142,20 +144,29 @@ func defaultTestControl() *Control {
 		NextID:           12,
 		FirmwareBasePath: "../test_files",
 		Nodes: map[string]NodeSettings{
-			"default": {1, 1, false},
-			"1":       {1, 1, false},
-			"2":       {11, 1, false},
+			"default": {1, 1},
+			"1":       {1, 1},
+			"2":       {11, 1},
 		},
 	}
 	return &control
 }
 
 func TestControlIDRequest(t *testing.T) {
-	myControl := defaultTestControl()
+	var tests = []struct {
+		AutoIDEnabled bool
+		Expected      string
+	}{
+		{false, ""},
+		{true, "13"},
+	}
 
-	expected := "13"
-	if actual := myControl.IDRequest(); actual != expected {
-		t.Errorf("Wrong payload - Actual: %s Expected: %s\n", actual, expected)
+	myControl := defaultTestControl()
+	for _, v := range tests {
+		myControl.AutoIDEnabled = v.AutoIDEnabled
+		if actual, incremented := myControl.IDRequest(); actual != v.Expected && v.AutoIDEnabled == incremented {
+			t.Errorf("Wrong payload - Actual: %s Expected: %s\n", actual, v.Expected)
+		}
 	}
 }
 
@@ -186,7 +197,7 @@ func TestControlDataRequest(t *testing.T) {
 
 	for i := uint16(0); i < fwTest.Blocks; i++ {
 		block := fwTest.Blocks - i - 1
-		r := Configuration{
+		r := ota.Configuration{
 			Type:    1,
 			Version: 1,
 			Blocks:  block,
@@ -227,29 +238,6 @@ func TestControlFirmwareInfoByNode(t *testing.T) {
 
 		if fmInfo := myControl.firmwareInfo(v.Node, v.ReqType, v.ReqVersion); fmInfo.Type != v.Type || fmInfo.Version != v.Version || fmInfo.Path != v.Path || fmInfo.Source != v.Source {
 			t.Errorf("Unexpected type/version/filename - Actual: %d, %d, %s; Expected: %d, %d, %s", fmInfo.Type, fmInfo.Version, fmInfo.Path, v.Type, v.Version, v.Path)
-		}
-	}
-}
-
-func TestControlQueuedCommand(t *testing.T) {
-	var tests = []struct {
-		To      string
-		Topic   string
-		Payload string
-	}{
-		{"1", "test/1/255/1/0/1", "Test Payload"},
-		{"2", "test/2/255/1/0/1", "Payload Test"},
-		{"1", "test/1/255/3/0/3", "Payload Skipped"},
-		{"3", "", ""},
-	}
-
-	for _, v := range tests {
-		myControl := defaultTestControl()
-		myControl.QueuedCommand(v.To, v.Topic, v.Payload)
-		for _, cmd := range myControl.Commands[v.To] {
-			if cmd.Topic != v.Topic || cmd.Payload != v.Payload {
-				t.Errorf("Unexpected topic/payload- Actual: %s, %s; Expected: %s, %s", v.Topic, cmd.Topic, v.Payload, cmd.Payload)
-			}
 		}
 	}
 }

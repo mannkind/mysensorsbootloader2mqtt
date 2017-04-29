@@ -51,7 +51,7 @@ control:
             version: 1
         }
         1: { type: 1, version: 1 }
-        2: { type: 3, version: 1, queueMessages: true }
+        2: { type: 3, version: 1 }
         3: { type: 1, version: 2 }
         4: { type: 1, version: 1 }
         5: { type: 2, version: 3 }

@@ -4,7 +4,7 @@ import (
 	"log"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/mannkind/mysb/controller"
+	"github.com/mannkind/mysb/handlers"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -19,16 +19,18 @@ var MysbCmd = &cobra.Command{
 	Long:  "A Firmware Uploading Tool for the MYSBootloader via MQTT",
 	Run: func(cmd *cobra.Command, args []string) {
 		for {
-			controller := controller.MysbMQTT{}
+			log.Printf("Creating the MQTT transport handler")
+			controller := handlers.MysbMQTT{}
 			if err := viper.Unmarshal(&controller); err != nil {
 				log.Panicf("Error unmarshaling configuration: %s", err)
 			}
 
 			if err := controller.Start(); err != nil {
-				log.Panicf("Error starting controller: %s", err)
+				log.Panicf("Error starting MQTT transport handler: %s", err)
 			}
 
 			<-reload
+			log.Printf("Received Reload Signal")
 			controller.Stop()
 		}
 	},

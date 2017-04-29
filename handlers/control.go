@@ -1,11 +1,12 @@
-package ota
+package handlers
 
 import (
 	"fmt"
 	"log"
 	"os"
 	"strconv"
-	"strings"
+
+	"github.com/mannkind/mysb/ota"
 )
 
 // Control - Control the interaction of Transport and OTA
@@ -14,15 +15,13 @@ type Control struct {
 	NextID             uint8
 	FirmwareBasePath   string
 	Nodes              map[string]NodeSettings
-	BootloaderCommands map[string]Configuration
-	Commands           map[string][]QueuedCommand
+	BootloaderCommands map[string]ota.Configuration
 }
 
 // NodeSettings - The settings for a node
 type NodeSettings struct {
-	Type          uint16
-	Version       uint16
-	QueueMessages bool
+	Type    uint16
+	Version uint16
 }
 
 // QueuedCommand - A queued command for sleeping nodes
@@ -93,20 +92,24 @@ func (c Control) firmwareInfoAssignment(nodeID string, source fwSource) fwInfo {
 }
 
 // IDRequest - Handle incoming ID requests
-func (c *Control) IDRequest() string {
+func (c *Control) IDRequest() (string, bool) {
 	log.Println("ID Request")
+	if !c.AutoIDEnabled {
+		return "", false
+	}
+
 	c.NextID++
 
 	log.Printf("Assigning ID: %d\n", c.NextID)
-	return fmt.Sprintf("%d", c.NextID)
+	return fmt.Sprintf("%d", c.NextID), true
 }
 
 // ConfigurationRequest - Handle incoming firmware configuration requets
 func (c *Control) ConfigurationRequest(to string, payload string) string {
-	req := NewConfiguration(payload)
+	req := ota.NewConfiguration(payload)
 	fw := c.firmwareInfo(to, req.Type, req.Version)
-	firmware := NewFirmware(fw.Path)
-	resp := Configuration{
+	firmware := ota.NewFirmware(fw.Path)
+	resp := ota.Configuration{
 		Type:    fw.Type,
 		Version: fw.Version,
 		Blocks:  firmware.Blocks,
@@ -119,10 +122,10 @@ func (c *Control) ConfigurationRequest(to string, payload string) string {
 
 // DataRequest - Handle incoming firmware requests
 func (c *Control) DataRequest(to string, payload string) string {
-	req := NewData(payload)
+	req := ota.NewData(payload)
 	fw := c.firmwareInfo(to, req.Type, req.Version)
-	firmware := NewFirmware(fw.Path)
-	resp := Data{
+	firmware := ota.NewFirmware(fw.Path)
+	resp := ota.Data{
 		Type:    fw.Type,
 		Version: fw.Version,
 		Block:   req.Block,
@@ -148,7 +151,7 @@ func (c *Control) DataRequest(to string, payload string) string {
 // * 0x03 - Set ParentID
 func (c *Control) BootloaderCommand(to string, cmd string, payload string) {
 	blCmd, _ := strconv.ParseUint(cmd, 10, 16)
-	resp := Configuration{
+	resp := ota.Configuration{
 		Type:    uint16(blCmd),
 		Version: 0,
 		Blocks:  0,
@@ -162,50 +165,7 @@ func (c *Control) BootloaderCommand(to string, cmd string, payload string) {
 
 	log.Printf("Bootloader Command: To: %s; Cmd: %s; Payload: %s\n", to, cmd, payload)
 	if c.BootloaderCommands == nil {
-		c.BootloaderCommands = make(map[string]Configuration)
+		c.BootloaderCommands = make(map[string]ota.Configuration)
 	}
 	c.BootloaderCommands[to] = resp
-}
-
-// QueuedCommand - Handle queued commands to nodes
-func (c *Control) QueuedCommand(to string, topic string, payload string) {
-	// Reset any queued commands on blank topic/payload
-	if topic == "" && payload == "" {
-		log.Printf("Queued Command (Reset): To: %s\n", to)
-		if c.Commands == nil {
-			c.Commands = make(map[string][]QueuedCommand)
-		}
-		c.Commands[to] = make([]QueuedCommand, 0)
-		return
-	}
-
-	parts := strings.Split(topic, "/")
-	msgType := parts[3]
-	subType := parts[5]
-
-	skipMsgTypes := map[string]bool{
-		"0": true, // Presentation
-		"4": true, // Stream for OTA
-	}
-
-	includeInternalSubTypes := map[string]bool{
-		"4":  true, // ID Response
-		"8":  true, // ParentID Repsonse
-		"13": true, // Reboot
-	}
-
-	if skipMsgTypes[msgType] || (msgType == "3" && !includeInternalSubTypes[subType]) {
-		return
-	}
-
-	if c.Commands == nil {
-		c.Commands = make(map[string][]QueuedCommand)
-	}
-
-	if c.Commands[to] == nil {
-		c.Commands[to] = make([]QueuedCommand, 0)
-	}
-
-	log.Printf("Queued Command (Saved): To: %s; Topic: %s; Payload: %s\n", to, topic, payload)
-	c.Commands[to] = append(c.Commands[to], QueuedCommand{topic, payload})
 }
