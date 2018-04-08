@@ -1,11 +1,10 @@
-FROM golang:1.8-alpine
+FROM golang:alpine as build
 COPY . /go/src/app
-RUN apk add --no-cache --virtual .build-deps git make && \
+RUN apk add --no-cache --update build-base git && \
     cd /go/src/app/ && \
-    make && \
-    apk del .build-deps && \
-    mv /go/src/app/bin/mysb /go/bin && \
-    rm -rf /go/src/app/*
+    make
 
+FROM alpine:latest
+COPY --from=build /go/src/app/bin/mysb /usr/local/bin/mysb
 VOLUME /config
 CMD mysb -c /config/config.yaml
