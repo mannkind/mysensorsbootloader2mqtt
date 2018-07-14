@@ -1,11 +1,9 @@
 language: go
 go:
-  - 1.7
-  - 1.8
-  - 1.9
-matrix:
-  allow_failures:
-  - go: 1.9 
+  - "1.7"
+  - "1.8"
+  - "1.9"
+  - "1.10"
 script:
   - make setup
   - make
