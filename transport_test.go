@@ -1,4 +1,4 @@
-package handlers
+package main
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const nodeRequestHex = "../test_files/1/1/firmware.hex"
+const nodeRequestHex = "test_files/1/1/firmware.hex"
 
 var testClient = mqtt.NewClient(mqtt.NewClientOptions())
 
@@ -22,7 +22,7 @@ func defaultTestMQTT() *MysbMQTT {
 
         control:
             nextid: 12
-            firmwarebasepath: '../test_files'
+            firmwarebasepath: 'test_files'
             nodes:
                 default: { type: 1, version: 1 }
                 1: { type: 1, version: 1, queueMessages: true }

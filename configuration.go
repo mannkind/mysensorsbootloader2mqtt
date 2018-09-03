@@ -1,4 +1,4 @@
-package ota
+package main
 
 // Configuration - The MySysBootloader Firmware Config Request
 type Configuration struct {

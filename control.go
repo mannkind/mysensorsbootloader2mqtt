@@ -1,12 +1,10 @@
-package handlers
+package main
 
 import (
 	"fmt"
 	"log"
 	"os"
 	"strconv"
-
-	"github.com/mannkind/mysb/ota"
 )
 
 // Control - Control the interaction of Transport and OTA
@@ -15,7 +13,7 @@ type Control struct {
 	NextID             uint8
 	FirmwareBasePath   string
 	Nodes              map[string]NodeSettings
-	BootloaderCommands map[string]ota.Configuration
+	BootloaderCommands map[string]Configuration
 }
 
 // NodeSettings - The settings for a node
@@ -106,10 +104,10 @@ func (c *Control) IDRequest() (string, bool) {
 
 // ConfigurationRequest - Handle incoming firmware configuration requets
 func (c *Control) ConfigurationRequest(to string, payload string) string {
-	req := ota.NewConfiguration(payload)
+	req := NewConfiguration(payload)
 	fw := c.firmwareInfo(to, req.Type, req.Version)
-	firmware := ota.NewFirmware(fw.Path)
-	resp := ota.Configuration{
+	firmware := NewFirmware(fw.Path)
+	resp := Configuration{
 		Type:    fw.Type,
 		Version: fw.Version,
 		Blocks:  firmware.Blocks,
@@ -122,10 +120,10 @@ func (c *Control) ConfigurationRequest(to string, payload string) string {
 
 // DataRequest - Handle incoming firmware requests
 func (c *Control) DataRequest(to string, payload string) string {
-	req := ota.NewData(payload)
+	req := NewData(payload)
 	fw := c.firmwareInfo(to, req.Type, req.Version)
-	firmware := ota.NewFirmware(fw.Path)
-	resp := ota.Data{
+	firmware := NewFirmware(fw.Path)
+	resp := Data{
 		Type:    fw.Type,
 		Version: fw.Version,
 		Block:   req.Block,
@@ -151,7 +149,7 @@ func (c *Control) DataRequest(to string, payload string) string {
 // * 0x03 - Set ParentID
 func (c *Control) BootloaderCommand(to string, cmd string, payload string) {
 	blCmd, _ := strconv.ParseUint(cmd, 10, 16)
-	resp := ota.Configuration{
+	resp := Configuration{
 		Type:    uint16(blCmd),
 		Version: 0,
 		Blocks:  0,
@@ -165,7 +163,7 @@ func (c *Control) BootloaderCommand(to string, cmd string, payload string) {
 
 	log.Printf("Bootloader Command: To: %s; Cmd: %s; Payload: %s\n", to, cmd, payload)
 	if c.BootloaderCommands == nil {
-		c.BootloaderCommands = make(map[string]ota.Configuration)
+		c.BootloaderCommands = make(map[string]Configuration)
 	}
 	c.BootloaderCommands[to] = resp
 }

@@ -1,4 +1,4 @@
-package ota
+package main
 
 // Data - The MySysBootloader Firmware Config Request
 type Data struct {

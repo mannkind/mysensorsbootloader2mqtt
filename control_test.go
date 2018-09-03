@@ -1,12 +1,10 @@
-package handlers
+package main
 
 import (
 	"bufio"
 	"fmt"
 	"os"
 	"testing"
-
-	"github.com/mannkind/mysb/ota"
 )
 
 var firmwareTests = []struct {
@@ -15,14 +13,14 @@ var firmwareTests = []struct {
 	Blocks  uint16
 	Crc     uint16
 }{
-	{"../test_files/firmware.hex", "../test_files/firmware.encoded", 80, 18132},
-	{"../test_files/firmware2.hex", "../test_files/firmware2.encoded", 1304, 19151},
-	{"../test_files/firmware3.hex", "../test_files/firmware3.encoded", 1072, 64648},
+	{"test_files/firmware.hex", "test_files/firmware.encoded", 80, 18132},
+	{"test_files/firmware2.hex", "test_files/firmware2.encoded", 1304, 19151},
+	{"test_files/firmware3.hex", "test_files/firmware3.encoded", 1072, 64648},
 }
 
 func TestLoadFirmware(t *testing.T) {
 	for _, f := range firmwareTests {
-		firmware := ota.NewFirmware(f.File)
+		firmware := NewFirmware(f.File)
 
 		if firmware.Blocks != f.Blocks {
 			t.Errorf("Incorrect Blocks: Actual: %d; Expected %d", firmware.Blocks, f.Blocks)
@@ -36,7 +34,7 @@ func TestLoadFirmware(t *testing.T) {
 
 func TestLoadFirmwareGetBlock(t *testing.T) {
 	for _, f := range firmwareTests {
-		firmware := ota.NewFirmware(f.File)
+		firmware := NewFirmware(f.File)
 
 		if _, err := firmware.Data(f.Blocks); err == nil {
 			t.Errorf("Requested a block %d that should not have existed; this should have errored.", f.Blocks)
@@ -45,7 +43,7 @@ func TestLoadFirmwareGetBlock(t *testing.T) {
 }
 
 func TestBadConfigurationRequest(t *testing.T) {
-	if c := ota.NewConfiguration("0Z00000000000000"); c == nil {
+	if c := NewConfiguration("0Z00000000000000"); c == nil {
 		t.Error("Z is not a valid hexidecmial character and should have errored.")
 	}
 }
@@ -65,7 +63,7 @@ func TestConfigurationRequest(t *testing.T) {
 	}
 
 	for _, v := range tests {
-		c := ota.NewConfiguration(v.Hex)
+		c := NewConfiguration(v.Hex)
 
 		if c.Type != v.Type {
 			t.Errorf("Type does not match. Actual: %d. Expected %d.", c.Type, v.Type)
@@ -90,14 +88,14 @@ func TestConfigurationRequest(t *testing.T) {
 }
 
 func TestBadDataRequest(t *testing.T) {
-	if d := ota.NewData("0Z00000000000000"); d.Block != 0 || d.Type != 0 || d.Version != 0 {
+	if d := NewData("0Z00000000000000"); d.Block != 0 || d.Type != 0 || d.Version != 0 {
 		t.Error("Z is not a valid hexidecmial character and should have errored.")
 	}
 }
 
 func TestDataRequest(t *testing.T) {
 	for _, v := range firmwareTests {
-		firmware := ota.NewFirmware(v.File)
+		firmware := NewFirmware(v.File)
 		fmt.Printf("Testing %s\n", v.File)
 
 		file, err := os.Open(v.Encoded)
@@ -114,7 +112,7 @@ func TestDataRequest(t *testing.T) {
 
 		for i := uint16(0); i < v.Blocks; i++ {
 			block := v.Blocks - i - 1
-			r := ota.Data{
+			r := Data{
 				Type:    1,
 				Version: 1,
 				Block:   block,
@@ -134,7 +132,7 @@ func TestDataRequest(t *testing.T) {
 }
 
 func TestNoFileFirmware(t *testing.T) {
-	if firmware := ota.NewFirmware("/tmp/AFileThatDoesNotExist.hex"); firmware.Blocks != 0 || firmware.Crc != 0 {
+	if firmware := NewFirmware("/tmp/AFileThatDoesNotExist.hex"); firmware.Blocks != 0 || firmware.Crc != 0 {
 		t.Error("The file does not exist should have errored.")
 	}
 }
@@ -142,7 +140,7 @@ func TestNoFileFirmware(t *testing.T) {
 func defaultTestControl() *Control {
 	control := Control{
 		NextID:           12,
-		FirmwareBasePath: "../test_files",
+		FirmwareBasePath: "test_files",
 		Nodes: map[string]NodeSettings{
 			"default": {1, 1},
 			"1":       {1, 1},
@@ -197,7 +195,7 @@ func TestControlDataRequest(t *testing.T) {
 
 	for i := uint16(0); i < fwTest.Blocks; i++ {
 		block := fwTest.Blocks - i - 1
-		r := ota.Configuration{
+		r := Configuration{
 			Type:    1,
 			Version: 1,
 			Blocks:  block,
@@ -222,10 +220,10 @@ func TestControlFirmwareInfoByNode(t *testing.T) {
 		Path       string
 		Source     fwSource
 	}{
-		{"1", 5, 1, 1, 1, "../test_files/1/1/firmware.hex", fwNode},
-		{"2", 2, 1, 11, 1, "../test_files/11/1/firmware.hex", fwNode},
-		{"254", 1, 1, 1, 1, "../test_files/1/1/firmware.hex", fwReq},
-		{"254", 254, 254, 1, 1, "../test_files/1/1/firmware.hex", fwDefault},
+		{"1", 5, 1, 1, 1, "test_files/1/1/firmware.hex", fwNode},
+		{"2", 2, 1, 11, 1, "test_files/11/1/firmware.hex", fwNode},
+		{"254", 1, 1, 1, 1, "test_files/1/1/firmware.hex", fwReq},
+		{"254", 254, 254, 1, 1, "test_files/1/1/firmware.hex", fwDefault},
 		{"254", 254, 254, 0, 0, "", fwUnknown},
 	}
 

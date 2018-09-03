@@ -1,6 +1,5 @@
-mysb
-mysb_ota
 config.yaml
 /.GOPATH
 /bin
 /vendor
+.vscode
