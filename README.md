@@ -20,14 +20,7 @@ docker run -d --name="mysb" -v /the/path/to/config_folder:/config -v /etc/localt
 git clone https://github.com/mannkind/mysb
 cd mysb
 make
-./bin/mysb -c */the/path/to/config_folder/config.yaml*
-```
-
-## Via Go
-```
-go get -u github.com/mannkind/mysb
-go install github.com/mannkind/mysb
-mysb -c */the/path/to/config_folder/config.yaml*
+./mysb -c */the/path/to/config_folder/config.yaml*
 ```
 
 # Configuration
