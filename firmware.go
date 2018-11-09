@@ -7,20 +7,18 @@ import (
 	"github.com/kierdavis/ihex-go"
 )
 
-const firmwareBlockSize uint16 = 16
-
-// Firmware - The MySysBootloader Firmware Calculations
-type Firmware struct {
+// firmware - The MySysBootloader firmware representation
+type firmware struct {
 	Blocks uint16
 	Crc    uint16
 	data   []byte
 }
 
-// NewFirmware - Loads a filename; computes block count and crc
-func NewFirmware(filename string) *Firmware {
+// newFirmware - Loads a filename; computes block count and crc
+func newFirmware(filename string) *firmware {
 	file, err := os.Open(filename)
 	if err != nil {
-		return &Firmware{}
+		return &firmware{}
 	}
 	defer file.Close()
 
@@ -71,19 +69,19 @@ func NewFirmware(filename string) *Firmware {
 		}
 	}
 
-	return &Firmware{
+	return &firmware{
 		Blocks: blocks,
 		Crc:    crc,
 		data:   data,
 	}
 }
 
-// Data - Gets a specific block from the firmware data
-func (f Firmware) Data(block uint16) ([]byte, error) {
+// dataForBlock - Gets a specific block from the firmware data
+func (f firmware) dataForBlock(block uint16) ([]byte, error) {
 	fromBlock := block * firmwareBlockSize
 	toBlock := fromBlock + firmwareBlockSize
 	if dataLen := uint16(len(f.data)); dataLen < toBlock {
-		return []byte{}, fmt.Errorf("Block %d cannot be found in the firmware data.", block)
+		return []byte{}, fmt.Errorf("Block %d cannot be found in the firmware data", block)
 	}
 
 	data := f.data[fromBlock:toBlock]

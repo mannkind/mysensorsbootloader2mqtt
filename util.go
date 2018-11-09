@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func decodeHexIntoStruct(s string, data interface{}) error {
+func hex2Struct(s string, data interface{}) error {
 	b, err := hex.DecodeString(s)
 	if err != nil {
 		return err
@@ -19,7 +19,7 @@ func decodeHexIntoStruct(s string, data interface{}) error {
 	return nil
 }
 
-func encodeStructIntoHex(data interface{}, input []byte) string {
+func struct2Hex(data interface{}, input []byte) string {
 	w := new(bytes.Buffer)
 	binary.Write(w, binary.LittleEndian, data)
 	return strings.ToUpper(

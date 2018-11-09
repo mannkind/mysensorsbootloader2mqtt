@@ -4,33 +4,29 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/eclipse/paho.mqtt.golang"
+	"github.com/caarlos0/env"
 	"gopkg.in/yaml.v2"
+
+	"github.com/eclipse/paho.mqtt.golang"
 )
 
 const nodeRequestHex = "test_files/1/1/firmware.hex"
 
 var testClient = mqtt.NewClient(mqtt.NewClientOptions())
 
-func defaultTestMQTT() *MysbMQTT {
+func defaultTestMQTT() *mysb {
 	var testConfig = `
-        settings:
-          clientid: 'GoMySysBootloader'
-          broker: "tcp://fake.mosquitto.org:1883"
-          subtopic: 'mysensors_rx'
-          pubtopic: 'mysensors_tx'
-
-        control:
-            nextid: 12
-            firmwarebasepath: 'test_files'
-            nodes:
-                default: { type: 1, version: 1 }
-                1: { type: 1, version: 1, queueMessages: true }
+      nodes:
+        default: { type: 1, version: 1 }
+        1: { type: 1, version: 1, queueMessages: true }
     `
 
-	myMqtt := MysbMQTT{}
-	err := yaml.Unmarshal([]byte(testConfig), &myMqtt)
-	if err != nil {
+	myMqtt := mysb{}
+	env.Parse(&myMqtt)
+	myMqtt.AutoIDEnabled = true
+	myMqtt.NextID = 12
+	myMqtt.FirmwareBasePath = "test_files"
+	if err := yaml.Unmarshal([]byte(testConfig), &myMqtt); err != nil {
 		panic(err)
 	}
 	return &myMqtt
@@ -43,8 +39,8 @@ func TestMqttIDRequest(t *testing.T) {
 		Response      string
 		AutoIDEnabled bool
 	}{
-		{fmt.Sprintf("%s/255/255/3/0/3", myMQTT.Settings.SubTopic), fmt.Sprintf("%s/255/255/3/0/4 %s", myMQTT.Settings.PubTopic, "13"), true},
-		{fmt.Sprintf("%s/255/255/3/0/3", myMQTT.Settings.SubTopic), "", false},
+		{fmt.Sprintf("%s/255/255/3/0/3", myMQTT.SubTopic), fmt.Sprintf("%s/255/255/3/0/4 %s", myMQTT.PubTopic, "13"), true},
+		{fmt.Sprintf("%s/255/255/3/0/3", myMQTT.SubTopic), "", false},
 	}
 	for _, v := range tests {
 		msg := &mockMessage{
@@ -54,11 +50,11 @@ func TestMqttIDRequest(t *testing.T) {
 
 		expected := v.Response
 
-		myMQTT.LastPublished = ""
-		myMQTT.Control.AutoIDEnabled = v.AutoIDEnabled
+		myMQTT.lastPublished = ""
+		myMQTT.AutoIDEnabled = v.AutoIDEnabled
 		myMQTT.idRequest(testClient, msg)
-		if myMQTT.LastPublished != expected {
-			t.Errorf("Wrong topic or payload - Actual: %s, Expected: %s", myMQTT.LastPublished, expected)
+		if myMQTT.lastPublished != expected {
+			t.Errorf("Wrong topic or payload - Actual: %s, Expected: %s", myMQTT.lastPublished, expected)
 		}
 	}
 }
@@ -66,29 +62,29 @@ func TestMqttIDRequest(t *testing.T) {
 func TestMqttConfigurationRequest(t *testing.T) {
 	myMQTT := defaultTestMQTT()
 	msg := &mockMessage{
-		topic:   fmt.Sprintf("%s/1/255/4/0/0", myMQTT.Settings.SubTopic),
+		topic:   fmt.Sprintf("%s/1/255/4/0/0", myMQTT.SubTopic),
 		payload: []byte("010001005000D446"),
 	}
 
-	expected := fmt.Sprintf("%s/1/255/4/0/1 %s", myMQTT.Settings.PubTopic, "010001005000D446")
+	expected := fmt.Sprintf("%s/1/255/4/0/1 %s", myMQTT.PubTopic, "010001005000D446")
 	myMQTT.configurationRequest(testClient, msg)
-	if myMQTT.LastPublished != expected {
-		t.Errorf("Wrong topic or payload - Actual: %s, Expected: %s", myMQTT.LastPublished, expected)
+	if myMQTT.lastPublished != expected {
+		t.Errorf("Wrong topic or payload - Actual: %s, Expected: %s", myMQTT.lastPublished, expected)
 	}
 }
 
 func TestMqttDataRequest(t *testing.T) {
 	myMQTT := defaultTestMQTT()
 	msg := &mockMessage{
-		topic:   fmt.Sprintf("%s/1/255/4/0/0", myMQTT.Settings.SubTopic),
+		topic:   fmt.Sprintf("%s/1/255/4/0/0", myMQTT.SubTopic),
 		payload: []byte("010001000100"),
 	}
 
-	expected := fmt.Sprintf("%s/1/255/4/0/3 %s", myMQTT.Settings.PubTopic, "0100010001000C946E000C946E000C946E000C946E00")
+	expected := fmt.Sprintf("%s/1/255/4/0/3 %s", myMQTT.PubTopic, "0100010001000C946E000C946E000C946E000C946E00")
 
 	myMQTT.dataRequest(testClient, msg)
-	if myMQTT.LastPublished != expected {
-		t.Errorf("Wrong topic or payload - Actual: %s, Expected: %s", myMQTT.LastPublished, expected)
+	if myMQTT.lastPublished != expected {
+		t.Errorf("Wrong topic or payload - Actual: %s, Expected: %s", myMQTT.lastPublished, expected)
 	}
 }
 
@@ -111,15 +107,15 @@ func TestMqttBootloaderCommand(t *testing.T) {
 		}
 
 		myMQTT.bootloaderCommand(testClient, msg)
-		if _, ok := myMQTT.Control.BootloaderCommands[v.To]; !ok {
+		if _, ok := myMQTT.bootloaderCommands[v.To]; !ok {
 			t.Error("Bootloader command not found")
 		} else {
 			if ok := myMQTT.runBootloaderCommand(testClient, v.To); !ok {
 				t.Error("Bootloader command not run")
 			} else {
-				expected := fmt.Sprintf("%s/%s/255/4/0/1 %s", myMQTT.Settings.PubTopic, v.To, v.ExpectedPayload)
-				if myMQTT.LastPublished != expected {
-					t.Errorf("Wrong topic or payload - Actual: %s, Expected: %s", myMQTT.LastPublished, expected)
+				expected := fmt.Sprintf("%s/%s/255/4/0/1 %s", myMQTT.PubTopic, v.To, v.ExpectedPayload)
+				if myMQTT.lastPublished != expected {
+					t.Errorf("Wrong topic or payload - Actual: %s, Expected: %s", myMQTT.lastPublished, expected)
 				}
 			}
 		}
@@ -135,11 +131,9 @@ func TestMqttBadBootloaderCommand(t *testing.T) {
 
 func TestMqttStart(t *testing.T) {
 	myMQTT := defaultTestMQTT()
-	if err := myMQTT.Start(); err == nil {
-		t.Error("Something went wrong; expected a failure to connect!")
+	if err := myMQTT.start(); err != nil {
+		t.Error("Something went wrong; expected to connect!")
 	}
-
-	myMQTT.Stop()
 }
 
 func TestMqttConnect(t *testing.T) {

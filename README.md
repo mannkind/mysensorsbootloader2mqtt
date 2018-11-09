@@ -20,51 +20,39 @@ docker run -d --name="mysb" -v /the/path/to/config_folder:/config -v /etc/localt
 git clone https://github.com/mannkind/mysb
 cd mysb
 make
-./mysb -c */the/path/to/config_folder/config.yaml*
+MYSB_CONFIGFILE="config.yaml" ./mysb 
 ```
 
 # Configuration
 
-Configuration happens in the config.yaml file. A full example might look this:
+Configuration happens via environmental variables
 
 ```
-settings:
-    clientid: 'GoMySysBootloader'
-    broker:   'tcp://mosquitto:1883'
-    subtopic: 'mysensors_rx'
-    pubtopic: 'mysensors_tx'
+MYSB_AUTOID - The flag that indicates Mysb should handle ID requests, defaults to false
+MYSB_NEXTID - The number on which to base the next id, defaults to 1
+MYSB_FIRMWAREBASEPATH - The path to the firmware files, defaults to "/config/firmware"
+MYSB_CONFIG - The yaml config that contains control variables for Mysb
+MYSB_NODES - The nodes configuration (see below)
+MQTT_CLIENTID - [OPTIONAL] The clientId, defaults to "DefaultMysbClientID"
+MQTT_BROKER - [OPTIONAL] The MQTT broker, defaults to "tcp://mosquitto.org:1883"
+MQTT_SUBTOPIC - [OPTIONAL] The MQTT topic on which to subscribe, defaults to "mysensors_rx"
+MQTT_PUBTOPIC - [OPTIONAL] The MQTT topic on which to publish, defaults to "mysensors_tx"
+MQTT_USERNAME - [OPTIONAL] The MQTT username, default to ""
+MQTT_PASSWORD - [OPTIONAL] The MQTT password, default to ""
+```
 
-control:
-    autoidenabled: true   
-    nextid: 12
-    firmwarebasepath: '/the/path/to/config_folder/firmware'
-    nodes:
-        default: {
-            type: 1,
-            version: 1
-        }
-        1: { type: 1, version: 1 }
-        2: { type: 3, version: 1 }
-        3: { type: 1, version: 2 }
-        4: { type: 1, version: 1 }
-        5: { type: 2, version: 3 }
-    # Not used in Mysb - for reference only
-    types:
-      1: 'Temperature Monitor'
-      2: 'Door Monitor'
-      3: 'Plant Monitor'
-      4: 'Garage Actuator'
-      5: 'Energy Monitor'
-      6: 'Glass Break Monitor'
-      7: 'Fireplace Actuator'
-      8: 'Signing Setup'
-      9: 'AC Actuator'
+The file referenced by MYSB_NODES might look something like the following
 
-    versions:
-      1: '1.5.1'
-      2: '1.5.4'
-      3: '2.0.0-beta'
-
+```
+default: {
+    type: 1,
+    version: 1
+}
+1: { type: 1, version: 1 }
+2: { type: 3, version: 1 }
+3: { type: 1, version: 2 }
+4: { type: 1, version: 1 }
+5: { type: 2, version: 3 }
 ```
 
 The firmware a node is using is a combination of a `type` and a `version`. The priority of the firmware used is based on the following:

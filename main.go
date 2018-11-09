@@ -1,62 +1,57 @@
 package main
 
 import (
-	"github.com/fsnotify/fsnotify"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"log"
+	"reflect"
+
+	"github.com/caarlos0/env"
+	"gopkg.in/yaml.v2"
 )
 
 // Version - Set during compilation when using included Makefile
 var Version = "X.X.X"
 
-var cfgFile string
-var reload = make(chan bool)
-var mysbCmd = &cobra.Command{
-	Use:   "mysb",
-	Short: "A Firmware Uploading Tool for the MYSBootloader via MQTT",
-	Long:  "A Firmware Uploading Tool for the MYSBootloader via MQTT",
-	Run: func(cmd *cobra.Command, args []string) {
-		for {
-			log.Printf("Creating the MQTT transport handler")
-			controller := MysbMQTT{}
-			if err := viper.Unmarshal(&controller); err != nil {
-				log.Panicf("Error unmarshaling configuration: %s", err)
-			}
-
-			if err := controller.Start(); err != nil {
-				log.Panicf("Error starting MQTT transport handler: %s", err)
-			}
-
-			<-reload
-			log.Printf("Received Reload Signal")
-			controller.Stop()
-		}
-	},
-}
-
-func init() {
-	cobra.OnInitialize(func() {
-		viper.SetConfigFile(cfgFile)
-		viper.WatchConfig()
-		viper.OnConfigChange(func(e fsnotify.Event) {
-			log.Printf("Configuration Changed: %s", e.Name)
-			reload <- true
-		})
-
-		log.Printf("Loading Configuration %s", cfgFile)
-		if err := viper.ReadInConfig(); err != nil {
-			log.Fatalf("Error Loading Configuration: %s ", err)
-		}
-		log.Printf("Loaded Configuration %s", cfgFile)
-	})
-
-	mysbCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", ".mysb.yaml", "The path to the configuration file")
-}
-
 func main() {
 	log.Printf("Mysb Version: %s", Version)
-	if err := mysbCmd.Execute(); err != nil {
-		log.Fatal(err)
+
+	log.Print("Stating Process")
+	controller := mysb{}
+	if err := env.ParseWithFuncs(&controller, env.CustomParsers{
+		reflect.TypeOf(nodeSettingsMap{}): nodeSettingsParser,
+	}); err != nil {
+		log.Panicf("Error unmarshaling configuration: %s", err)
 	}
+
+	redactedPassword := ""
+	if len(controller.Password) > 0 {
+		redactedPassword = "<REDACTED>"
+	}
+
+	log.Printf("Environmental Settings:")
+	log.Printf("  * ClientID      : %s", controller.ClientID)
+	log.Printf("  * Broker        : %s", controller.Broker)
+	log.Printf("  * SubTopic      : %s", controller.SubTopic)
+	log.Printf("  * PubTopic      : %s", controller.PubTopic)
+	log.Printf("  * Username      : %s", controller.Username)
+	log.Printf("  * Password      : %s", redactedPassword)
+	log.Printf("  * AutoID          : %t", controller.AutoIDEnabled)
+	log.Printf("  * NextID          : %d", controller.NextID)
+	log.Printf("  * FirmwareBasePath: %s", controller.FirmwareBasePath)
+	log.Printf("  * Nodes           : %+v", controller.Nodes)
+
+	if err := controller.start(); err != nil {
+		log.Panicf("Error starting mysb: %s", err)
+	}
+
+	// log.Print("Ending Process")
+	select {}
+}
+
+func nodeSettingsParser(value string) (interface{}, error) {
+	control := make(nodeSettingsMap)
+	if err := yaml.Unmarshal([]byte(value), &control); err != nil {
+		log.Panicf("Error unmarshaling control configuration: %s", err)
+	}
+
+	return control, nil
 }
