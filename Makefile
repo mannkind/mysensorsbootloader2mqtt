@@ -27,7 +27,7 @@ build: format
 		$(GOBUILD) $(BINARY_VERSION_FLAGS) -o $(BINARY_NAME) -v
 run: build
 		./$(BINARY_NAME)
-docker:
+docker: clean
 		{ \
 		set -e ;\
 		for arch in $(DOCKER_ARCHS); do \

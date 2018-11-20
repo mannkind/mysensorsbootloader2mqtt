@@ -12,7 +12,7 @@ A Firmware Uploading Tool for the MYSBootloader via MQTT
 
 ## Via Docker
 ```
-docker run -d --name="mysb" -v /the/path/to/config_folder:/config -v /etc/localtime:/etc/localtime:ro mannkind/mysb
+docker run -d --name="mysb" -v /etc/localtime:/etc/localtime:ro mannkind/mysb
 ```
 
 ## Via Make
@@ -20,7 +20,7 @@ docker run -d --name="mysb" -v /the/path/to/config_folder:/config -v /etc/localt
 git clone https://github.com/mannkind/mysb
 cd mysb
 make
-MYSB_CONFIGFILE="config.yaml" ./mysb 
+./mysb 
 ```
 
 # Configuration
@@ -28,15 +28,14 @@ MYSB_CONFIGFILE="config.yaml" ./mysb
 Configuration happens via environmental variables
 
 ```
-MYSB_AUTOID - The flag that indicates Mysb should handle ID requests, defaults to false
-MYSB_NEXTID - The number on which to base the next id, defaults to 1
-MYSB_FIRMWAREBASEPATH - The path to the firmware files, defaults to "/config/firmware"
-MYSB_CONFIG - The yaml config that contains control variables for Mysb
-MYSB_NODES - The nodes configuration (see below)
+MYSB_SUBTOPIC - [OPTIONAL] The MQTT topic on which to subscribe, defaults to "mysensors_rx"
+MYSB_PUBTOPIC - [OPTIONAL] The MQTT topic on which to publish, defaults to "mysensors_tx"
+MYSB_AUTOID - [OPTIONAL] The flag that indicates Mysb should handle ID requests, defaults to false
+MYSB_NEXTID - [OPTIONAL] The number on which to base the next id, defaults to 1
+MYSB_FIRMWAREBASEPATH - [OPTIONAL] The path to the firmware files, defaults to "/config/firmware"
+MYSB_NODES - [OPTIONAL] The nodes configuration (see below)
 MQTT_CLIENTID - [OPTIONAL] The clientId, defaults to "DefaultMysbClientID"
 MQTT_BROKER - [OPTIONAL] The MQTT broker, defaults to "tcp://mosquitto.org:1883"
-MQTT_SUBTOPIC - [OPTIONAL] The MQTT topic on which to subscribe, defaults to "mysensors_rx"
-MQTT_PUBTOPIC - [OPTIONAL] The MQTT topic on which to publish, defaults to "mysensors_tx"
 MQTT_USERNAME - [OPTIONAL] The MQTT username, default to ""
 MQTT_PASSWORD - [OPTIONAL] The MQTT password, default to ""
 ```
