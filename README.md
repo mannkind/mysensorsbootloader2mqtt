@@ -8,41 +8,43 @@ License](https://img.shields.io/badge/License-MIT-orange.svg?style=flat-square)]
 
 A Firmware Uploading Tool for the MYSBootloader via MQTT
 
-# Installation
+## Installation
 
-## Via Docker
-```
+### Via Docker
+
+```bash
 docker run -d --name="mysb" -v /etc/localtime:/etc/localtime:ro mannkind/mysb
 ```
 
-## Via Make
-```
+### Via Make
+
+```bash
 git clone https://github.com/mannkind/mysb
 cd mysb
 make
-./mysb 
+./mysb
 ```
 
-# Configuration
+## Configuration
 
 Configuration happens via environmental variables
 
-```
-MYSB_SUBTOPIC - [OPTIONAL] The MQTT topic on which to subscribe, defaults to "mysensors_rx"
-MYSB_PUBTOPIC - [OPTIONAL] The MQTT topic on which to publish, defaults to "mysensors_tx"
-MYSB_AUTOID - [OPTIONAL] The flag that indicates Mysb should handle ID requests, defaults to false
-MYSB_NEXTID - [OPTIONAL] The number on which to base the next id, defaults to 1
-MYSB_FIRMWAREBASEPATH - [OPTIONAL] The path to the firmware files, defaults to "/config/firmware"
-MYSB_NODES - [OPTIONAL] The nodes configuration (see below)
-MQTT_CLIENTID - [OPTIONAL] The clientId, defaults to "DefaultMysbClientID"
-MQTT_BROKER - [OPTIONAL] The MQTT broker, defaults to "tcp://mosquitto.org:1883"
-MQTT_USERNAME - [OPTIONAL] The MQTT username, default to ""
-MQTT_PASSWORD - [OPTIONAL] The MQTT password, default to ""
+```bash
+MYSB_SUBTOPIC           - [OPTIONAL] The MQTT topic on which to subscribe, defaults to "mysensors_rx"
+MYSB_PUBTOPIC           - [OPTIONAL] The MQTT topic on which to publish, defaults to "mysensors_tx"
+MYSB_AUTOID             - [OPTIONAL] The flag that indicates Mysb should handle ID requests, defaults to false
+MYSB_NEXTID             - [OPTIONAL] The number on which to base the next id, defaults to 1
+MYSB_FIRMWAREBASEPATH   - [OPTIONAL] The path to the firmware files, defaults to "/config/firmware"
+MYSB_NODES              - [OPTIONAL] The nodes configuration (see below)
+MQTT_CLIENTID           - [OPTIONAL] The clientId, defaults to "DefaultMysbClientID"
+MQTT_BROKER             - [OPTIONAL] The MQTT broker, defaults to "tcp://mosquitto.org:1883"
+MQTT_USERNAME           - [OPTIONAL] The MQTT username, default to ""
+MQTT_PASSWORD           - [OPTIONAL] The MQTT password, default to ""
 ```
 
 The file referenced by MYSB_NODES might look something like the following
 
-```
+```yaml
 default: {
     type: 1,
     version: 1
@@ -64,7 +66,7 @@ The location of the firmware picked is relative to the `control['firmwarebasepat
 
 E.g. /path/to/config_folder/firmware/_type_/_version_/firmware.hex
 
-```
+```bash
 $ find /path/to/config_folder/firmware
 /path/to/config_folder/firmware/3
 /path/to/config_folder/firmware/3/1

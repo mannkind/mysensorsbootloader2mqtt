@@ -38,12 +38,12 @@ func NewConfig() *Config {
 	}
 
 	log.Printf("Environmental Settings:")
-	log.Printf("  * ClientID      : %s", c.ClientID)
-	log.Printf("  * Broker        : %s", c.Broker)
-	log.Printf("  * SubTopic      : %s", c.SubTopic)
-	log.Printf("  * PubTopic      : %s", c.PubTopic)
-	log.Printf("  * Username      : %s", c.Username)
-	log.Printf("  * Password      : %s", redactedPassword)
+	log.Printf("  * ClientID        : %s", c.ClientID)
+	log.Printf("  * Broker          : %s", c.Broker)
+	log.Printf("  * SubTopic        : %s", c.SubTopic)
+	log.Printf("  * PubTopic        : %s", c.PubTopic)
+	log.Printf("  * Username        : %s", c.Username)
+	log.Printf("  * Password        : %s", redactedPassword)
 	log.Printf("  * AutoID          : %t", c.AutoIDEnabled)
 	log.Printf("  * NextID          : %d", c.NextID)
 	log.Printf("  * FirmwareBasePath: %s", c.FirmwareBasePath)
