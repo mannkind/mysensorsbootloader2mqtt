@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/eclipse/paho.mqtt.golang"
+	mqttExtDI "github.com/mannkind/paho.mqtt.golang.ext/di"
 )
 
 // Mysb - Coordinate OTA firmware uploads
@@ -23,8 +24,8 @@ type Mysb struct {
 	client             mqtt.Client
 }
 
-// NewMysb - Returns a new, configured Mysb object.
-func NewMysb(config *Config, mqttFuncWrapper *MQTTFuncWrapper) *Mysb {
+// NewMysb - Returns a new reference to a fully configured object.
+func NewMysb(config *Config, mqttFuncWrapper *mqttExtDI.MQTTFuncWrapper) *Mysb {
 	m := Mysb{
 		subTopic:         config.SubTopic,
 		pubTopic:         config.PubTopic,
@@ -35,15 +36,15 @@ func NewMysb(config *Config, mqttFuncWrapper *MQTTFuncWrapper) *Mysb {
 	}
 
 	opts := mqttFuncWrapper.
-		clientOptsFunc().
-		AddBroker(config.Broker).
-		SetClientID(config.ClientID).
+		ClientOptsFunc().
+		AddBroker(config.MQTT.Broker).
+		SetClientID(config.MQTT.ClientID).
 		SetOnConnectHandler(m.onConnect).
 		SetConnectionLostHandler(m.onDisconnect).
-		SetUsername(config.Username).
-		SetPassword(config.Password)
+		SetUsername(config.MQTT.Username).
+		SetPassword(config.MQTT.Password)
 
-	m.client = mqttFuncWrapper.clientFunc(opts)
+	m.client = mqttFuncWrapper.ClientFunc(opts)
 
 	return &m
 }

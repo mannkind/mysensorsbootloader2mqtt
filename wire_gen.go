@@ -5,11 +5,17 @@
 
 package main
 
+import (
+	"github.com/mannkind/paho.mqtt.golang.ext/cfg"
+	"github.com/mannkind/paho.mqtt.golang.ext/di"
+)
+
 // Injectors from wire.go:
 
 func InitializeMysb() *Mysb {
-	config := NewConfig()
-	mqttFuncWrapper := NewMQTTFuncWrapper()
+	mqttConfig := cfg.NewMQTTConfig()
+	config := NewConfig(mqttConfig)
+	mqttFuncWrapper := di.NewMQTTFuncWrapper()
 	mysb := NewMysb(config, mqttFuncWrapper)
 	return mysb
 }

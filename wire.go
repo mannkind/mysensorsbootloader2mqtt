@@ -3,12 +3,14 @@
 package main
 
 import (
-	"github.com/google/go-cloud/wire"
+	"github.com/google/wire"
+	mqttExtCfg "github.com/mannkind/paho.mqtt.golang.ext/cfg"
+	mqttExtDI "github.com/mannkind/paho.mqtt.golang.ext/di"
 )
 
 // InitializeMysb - Compile-time DI
 func InitializeMysb() *Mysb {
-	wire.Build(NewConfig, NewMQTTFuncWrapper, NewMysb)
+	wire.Build(mqttExtCfg.NewMQTTConfig, NewConfig, mqttExtDI.NewMQTTFuncWrapper, NewMysb)
 
 	return &Mysb{}
 }

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"testing"
 
+	mqttExtCfg "github.com/mannkind/paho.mqtt.golang.ext/cfg"
+	mqttExtDI "github.com/mannkind/paho.mqtt.golang.ext/di"
 	"gopkg.in/yaml.v2"
 )
 
@@ -16,7 +18,7 @@ func defaultTestMQTT() *Mysb {
         1: { type: 1, version: 1, queueMessages: true }
     `
 
-	mysb := NewMysb(NewConfig(), NewMQTTFuncWrapper())
+	mysb := NewMysb(NewConfig(mqttExtCfg.NewMQTTConfig()), mqttExtDI.NewMQTTFuncWrapper())
 	mysb.autoIDEnabled = true
 	mysb.nextID = 12
 	mysb.firmwareBasePath = "test_files"
