@@ -165,3 +165,6 @@ func (m *mockMessage) MessageID() uint16 {
 func (m *mockMessage) Payload() []byte {
 	return m.payload
 }
+
+func (m *mockMessage) Ack() {
+}
