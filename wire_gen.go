@@ -12,10 +12,10 @@ import (
 
 // Injectors from wire.go:
 
-func InitializeMysb() *Mysb {
+func initialize() *mqttClient {
 	mqttConfig := cfg.NewMQTTConfig()
 	config := NewConfig(mqttConfig)
 	mqttFuncWrapper := di.NewMQTTFuncWrapper()
-	mysb := NewMysb(config, mqttFuncWrapper)
-	return mysb
+	mainMqttClient := newMqttClient(config, mqttFuncWrapper)
+	return mainMqttClient
 }

@@ -8,9 +8,8 @@ import (
 	mqttExtDI "github.com/mannkind/paho.mqtt.golang.ext/di"
 )
 
-// InitializeMysb - Compile-time DI
-func InitializeMysb() *Mysb {
-	wire.Build(mqttExtCfg.NewMQTTConfig, NewConfig, mqttExtDI.NewMQTTFuncWrapper, NewMysb)
+func initialize() *mqttClient {
+	wire.Build(mqttExtCfg.NewMQTTConfig, NewConfig, mqttExtDI.NewMQTTFuncWrapper, newMqttClient)
 
-	return &Mysb{}
+	return &mqttClient{}
 }

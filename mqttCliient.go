@@ -2,17 +2,17 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
-	"github.com/eclipse/paho.mqtt.golang"
+	mqtt "github.com/eclipse/paho.mqtt.golang"
 	mqttExtDI "github.com/mannkind/paho.mqtt.golang.ext/di"
+	log "github.com/sirupsen/logrus"
 )
 
-// Mysb - Coordinate OTA firmware uploads
-type Mysb struct {
+type mqttClient struct {
 	subTopic           string
 	pubTopic           string
 	autoIDEnabled      bool
@@ -24,9 +24,9 @@ type Mysb struct {
 	client             mqtt.Client
 }
 
-// NewMysb - Returns a new reference to a fully configured object.
-func NewMysb(config *Config, mqttFuncWrapper *mqttExtDI.MQTTFuncWrapper) *Mysb {
-	m := Mysb{
+// newMqttClient - Returns a new reference to a fully configured object.
+func newMqttClient(config *Config, mqttFuncWrapper *mqttExtDI.MQTTFuncWrapper) *mqttClient {
+	m := mqttClient{
 		subTopic:         config.SubTopic,
 		pubTopic:         config.PubTopic,
 		autoIDEnabled:    config.AutoIDEnabled,
@@ -49,18 +49,51 @@ func NewMysb(config *Config, mqttFuncWrapper *mqttExtDI.MQTTFuncWrapper) *Mysb {
 	return &m
 }
 
-// Run - Start the Mysb process
-func (t *Mysb) Run() error {
-	log.Println("Connecting to MQTT")
-	if token := t.client.Connect(); !token.Wait() || token.Error() != nil {
-		return token.Error()
-	}
-
-	return nil
+func (t *mqttClient) run() {
+	t.runAfter(0 * time.Second)
 }
 
-func (t *Mysb) onConnect(client mqtt.Client) {
-	log.Println("Connected to MQTT")
+func (t *mqttClient) runAfter(delay time.Duration) {
+	time.Sleep(delay)
+
+	log.Info("Connecting to MQTT")
+	if token := t.client.Connect(); !token.Wait() || token.Error() != nil {
+		log.WithFields(log.Fields{
+			"error": token.Error(),
+		}).Error("Error connecting to MQTT")
+
+		delay = t.adjustReconnectDelay(delay)
+
+		log.WithFields(log.Fields{
+			"delay": delay,
+		}).Info("Sleeping before attempting to reconnect to MQTT")
+
+		t.runAfter(delay)
+	}
+}
+
+func (t *mqttClient) adjustReconnectDelay(delay time.Duration) time.Duration {
+	var maxDelay float64 = 120
+	defaultDelay := 2 * time.Second
+
+	// No delay, set to default delay
+	if delay.Seconds() == 0 {
+		delay = defaultDelay
+	} else {
+		// Increment the delay
+		delay = delay * 2
+
+		// If the delay is above two minutes, reset to default
+		if delay.Seconds() > maxDelay {
+			delay = defaultDelay
+		}
+	}
+
+	return delay
+}
+
+func (t *mqttClient) onConnect(client mqtt.Client) {
+	log.Info("Connected to MQTT")
 
 	// Subscribe to topics
 	subscriptions := map[string]mqtt.MessageHandler{
@@ -71,30 +104,41 @@ func (t *Mysb) onConnect(client mqtt.Client) {
 	}
 
 	for topic, handler := range subscriptions {
-		log.Printf("Subscribing: %s", topic)
+		llog := log.WithFields(log.Fields{
+			"topic": topic,
+		})
+
+		llog.Info("Subscribing to a new topic")
 		if token := client.Subscribe(topic, 0, handler); !token.Wait() || token.Error() != nil {
-			log.Printf("Subscribe Error: %s", token.Error())
+			llog.WithFields(log.Fields{
+				"error": token.Error(),
+			}).Error("Error subscribing to topic")
 		}
 	}
 }
 
-func (t *Mysb) onDisconnect(client mqtt.Client, err error) {
-	log.Printf("Disconnected from MQTT: %s.", err)
+func (t *mqttClient) onDisconnect(client mqtt.Client, err error) {
+	log.WithFields(log.Fields{
+		"error": err,
+	}).Error("Disconnected from MQTT")
 }
 
-func (t *Mysb) idRequest(client mqtt.Client, msg mqtt.Message) {
-	log.Println("ID Request")
+func (t *mqttClient) idRequest(client mqtt.Client, msg mqtt.Message) {
+	log.Info("ID Request")
 	if !t.autoIDEnabled {
 		return
 	}
 
 	t.nextID++
 
-	log.Printf("Assigning ID: %d\n", t.nextID)
+	log.WithFields(log.Fields{
+		"id": t.nextID,
+	}).Info("Assigning ID")
+
 	t.publish(client, fmt.Sprintf(idResponseTopic, t.pubTopic), fmt.Sprintf("%d", t.nextID))
 }
 
-func (t *Mysb) configurationRequest(client mqtt.Client, msg mqtt.Message) {
+func (t *mqttClient) configurationRequest(client mqtt.Client, msg mqtt.Message) {
 	_, payload, to := t.msgParts(msg)
 
 	// Attempt to run any bootloader commands
@@ -115,11 +159,15 @@ func (t *Mysb) configurationRequest(client mqtt.Client, msg mqtt.Message) {
 	respTopic := fmt.Sprintf(firmwareConfigResponseTopic, t.pubTopic, to)
 	respPayload := resp.String()
 
-	log.Printf("Configuration Request: From: %s; Request: %s; Response: %s\n", to, req.String(), respPayload)
+	log.WithFields(log.Fields{
+		"to":   to,
+		"req":  req.String(),
+		"resp": respPayload,
+	}).Info("Configuration Request")
 	t.publish(client, respTopic, respPayload)
 }
 
-func (t *Mysb) dataRequest(client mqtt.Client, msg mqtt.Message) {
+func (t *mqttClient) dataRequest(client mqtt.Client, msg mqtt.Message) {
 	_, payload, to := t.msgParts(msg)
 
 	req := newFirmwareRequest(payload)
@@ -135,14 +183,21 @@ func (t *Mysb) dataRequest(client mqtt.Client, msg mqtt.Message) {
 	respTopic := fmt.Sprintf(firmwareResponseTopic, t.pubTopic, to)
 	respPayload := resp.String(data)
 
+	llog := log.WithFields(log.Fields{
+		"reqBlock":   req.Block,
+		"totalBlock": firmware.Blocks,
+		"to":         to,
+		"payload":    payload,
+	})
 	if req.Block+1 == firmware.Blocks {
-		log.Printf("Data Request: From: %s; Payload: %s\n", to, payload)
-		log.Printf("Sending last block of %d to %s\n", firmware.Blocks, to)
+		llog.Info("Data Request")
+		llog.Info("Sending last block")
 	} else if req.Block == 0 {
-		log.Printf("Sending first block of %d to %s\n", firmware.Blocks, to)
+		llog.Info("Sending first block")
 	} else if req.Block%50 == 0 {
-		log.Printf("Sending block %d of %d to %s\n", req.Block, firmware.Blocks, to)
+		llog.Info("Sending block")
 	}
+
 	t.publish(client, respTopic, respPayload)
 }
 
@@ -150,7 +205,7 @@ func (t *Mysb) dataRequest(client mqtt.Client, msg mqtt.Message) {
 // * 0x01 - Erase EEPROM
 // * 0x02 - Set NodeID
 // * 0x03 - Set ParentID
-func (t *Mysb) bootloaderCommand(client mqtt.Client, msg mqtt.Message) {
+func (t *mqttClient) bootloaderCommand(client mqtt.Client, msg mqtt.Message) {
 	topic, payload, _ := t.msgParts(msg)
 
 	parts := strings.Split(topic, "/")
@@ -170,14 +225,18 @@ func (t *Mysb) bootloaderCommand(client mqtt.Client, msg mqtt.Message) {
 		resp.Version = uint16(blVersion)
 	}
 
-	log.Printf("Bootloader Command: To: %s; Cmd: %s; Payload: %s\n", to, cmd, payload)
+	log.WithFields(log.Fields{
+		"to":      to,
+		"cmd":     cmd,
+		"payload": payload,
+	}).Info("Bootloader Command")
 	if t.bootloaderCommands == nil {
 		t.bootloaderCommands = make(bootloaderCmdMap)
 	}
 	t.bootloaderCommands[to] = resp
 }
 
-func (t *Mysb) runBootloaderCommand(client mqtt.Client, to string) bool {
+func (t *mqttClient) runBootloaderCommand(client mqtt.Client, to string) bool {
 	if blcmd, ok := t.bootloaderCommands[to]; ok {
 		outTopic := fmt.Sprintf(firmwareConfigResponseTopic, t.pubTopic, to)
 		outPayload := blcmd.String()
@@ -190,7 +249,7 @@ func (t *Mysb) runBootloaderCommand(client mqtt.Client, to string) bool {
 	return false
 }
 
-func (t *Mysb) firmwareInfo(nodeID string, firmwareType uint16, firmwareVersion uint16) firmwareInformation {
+func (t *mqttClient) firmwareInfo(nodeID string, firmwareType uint16, firmwareVersion uint16) firmwareInformation {
 	fw := firmwareInformation{
 		Source: fwUnknown,
 	}
@@ -217,7 +276,7 @@ func (t *Mysb) firmwareInfo(nodeID string, firmwareType uint16, firmwareVersion 
 	return fw
 }
 
-func (t *Mysb) firmwareInfoAssignment(nodeID string, source firmwareSource) firmwareInformation {
+func (t *mqttClient) firmwareInfoAssignment(nodeID string, source firmwareSource) firmwareInformation {
 	fw := firmwareInformation{
 		Source: fwUnknown,
 	}
@@ -232,7 +291,7 @@ func (t *Mysb) firmwareInfoAssignment(nodeID string, source firmwareSource) firm
 	return fw
 }
 
-func (t *Mysb) msgParts(msg mqtt.Message) (string, string, string) {
+func (t *mqttClient) msgParts(msg mqtt.Message) (string, string, string) {
 	topic := msg.Topic()
 	payload := string(msg.Payload())
 	to := strings.Split(topic, "/")[1]
@@ -240,9 +299,16 @@ func (t *Mysb) msgParts(msg mqtt.Message) (string, string, string) {
 	return topic, payload, to
 }
 
-func (t *Mysb) publish(client mqtt.Client, topic string, payload string) {
+func (t *mqttClient) publish(client mqtt.Client, topic string, payload string) {
+	llog := log.WithFields(log.Fields{
+		"topic":   topic,
+		"payload": payload,
+	})
+
+	llog.Info("Publishing to MQTT")
 	if token := client.Publish(topic, 0, false, payload); token.Wait() && token.Error() != nil {
-		log.Printf("Publish Error: %s", token.Error())
+		log.Error("Publishing error")
 	}
+
 	t.lastPublished = fmt.Sprintf("%s %s", topic, payload)
 }
