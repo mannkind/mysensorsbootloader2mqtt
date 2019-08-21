@@ -25,10 +25,7 @@ type Config struct {
 func NewConfig(mqttCfg *mqttExtCfg.MQTTConfig) *Config {
 	c := Config{}
 	c.MQTT = mqttCfg
-
-	if c.MQTT.ClientID == "" {
-		c.MQTT.ClientID = "DefaultMySensorsBootloaderClientID"
-	}
+	c.MQTT.Defaults("DefaultMySensorsBootloaderClientID", "", "")
 
 	if err := env.ParseWithFuncs(&c, env.CustomParsers{
 		reflect.TypeOf(nodeSettingsMap{}): nodeSettingsParser,
@@ -38,20 +35,7 @@ func NewConfig(mqttCfg *mqttExtCfg.MQTTConfig) *Config {
 		}).Error("Unable to unmarshal configuration")
 	}
 
-	redactedPassword := ""
-	if len(c.MQTT.Password) > 0 {
-		redactedPassword = "<REDACTED>"
-	}
-
 	log.WithFields(log.Fields{
-		"MQTT.ClientID":              c.MQTT.ClientID,
-		"MQTT.Broker":                c.MQTT.Broker,
-		"MQTT.Username":              c.MQTT.Username,
-		"MQTT.Password":              redactedPassword,
-		"MQTT.Discovery":             c.MQTT.Discovery,
-		"MQTT.DiscoveryPrefix":       c.MQTT.DiscoveryPrefix,
-		"MQTT.DiscoveryName":         c.MQTT.DiscoveryName,
-		"MQTT.TopicPrefix":           c.MQTT.TopicPrefix,
 		"MySensors.AutoIDEnabled":    c.AutoIDEnabled,
 		"MySensors.SubTopic":         c.SubTopic,
 		"MySensors.PubTopic":         c.PubTopic,

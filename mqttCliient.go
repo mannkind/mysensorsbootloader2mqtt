@@ -25,7 +25,7 @@ type mqttClient struct {
 }
 
 // newMqttClient - Returns a new reference to a fully configured object.
-func newMqttClient(config *Config, mqttFuncWrapper *mqttExtDI.MQTTFuncWrapper) *mqttClient {
+func newMqttClient(config *Config, mqttFuncWrapper mqttExtDI.MQTTFuncWrapper) *mqttClient {
 	m := mqttClient{
 		subTopic:         config.SubTopic,
 		pubTopic:         config.PubTopic,
@@ -35,16 +35,12 @@ func newMqttClient(config *Config, mqttFuncWrapper *mqttExtDI.MQTTFuncWrapper) *
 		nodes:            config.Nodes,
 	}
 
-	opts := mqttFuncWrapper.
-		ClientOptsFunc().
-		AddBroker(config.MQTT.Broker).
-		SetClientID(config.MQTT.ClientID).
-		SetOnConnectHandler(m.onConnect).
-		SetConnectionLostHandler(m.onDisconnect).
-		SetUsername(config.MQTT.Username).
-		SetPassword(config.MQTT.Password)
-
-	m.client = mqttFuncWrapper.ClientFunc(opts)
+	m.client = mqttFuncWrapper(
+		config.MQTT,
+		m.onConnect,
+		m.onDisconnect,
+		"",
+	)
 
 	return &m
 }
