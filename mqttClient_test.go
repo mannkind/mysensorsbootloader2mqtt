@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	mqttExtCfg "github.com/mannkind/paho.mqtt.golang.ext/cfg"
-	mqttExtDI "github.com/mannkind/paho.mqtt.golang.ext/di"
+	mqttExtClient "github.com/mannkind/paho.mqtt.golang.ext/client"
 	"gopkg.in/yaml.v2"
 )
 
@@ -18,7 +18,7 @@ func defaultTestMQTT() *mqttClient {
         1: { type: 1, version: 1, queueMessages: true }
     `
 
-	mysensorsbootloader2mqtt := newMqttClient(NewConfig(mqttExtCfg.NewMQTTConfig()), mqttExtDI.NewMQTTFuncWrapper())
+	mysensorsbootloader2mqtt := newMQTTClient(newConfig(mqttExtCfg.NewMQTTConfig()), mqttExtClient.NewMQTTClientWrapper(mqttExtCfg.NewMQTTConfig()))
 	mysensorsbootloader2mqtt.autoIDEnabled = true
 	mysensorsbootloader2mqtt.nextID = 12
 	mysensorsbootloader2mqtt.firmwareBasePath = "test_files"
@@ -48,7 +48,7 @@ func TestMqttIDRequest(t *testing.T) {
 
 		mysensorsbootloader2mqtt.lastPublished = ""
 		mysensorsbootloader2mqtt.autoIDEnabled = v.AutoIDEnabled
-		mysensorsbootloader2mqtt.idRequest(mysensorsbootloader2mqtt.client, msg)
+		mysensorsbootloader2mqtt.idRequest(mysensorsbootloader2mqtt.client.Client, msg)
 		if mysensorsbootloader2mqtt.lastPublished != expected {
 			t.Errorf("Wrong topic or payload - Actual: %s, Expected: %s", mysensorsbootloader2mqtt.lastPublished, expected)
 		}
@@ -63,7 +63,7 @@ func TestMqttConfigurationRequest(t *testing.T) {
 	}
 
 	expected := fmt.Sprintf("%s/1/255/4/0/1 %s", mysensorsbootloader2mqtt.pubTopic, "010001005000D446")
-	mysensorsbootloader2mqtt.configurationRequest(mysensorsbootloader2mqtt.client, msg)
+	mysensorsbootloader2mqtt.configurationRequest(mysensorsbootloader2mqtt.client.Client, msg)
 	if mysensorsbootloader2mqtt.lastPublished != expected {
 		t.Errorf("Wrong topic or payload - Actual: %s, Expected: %s", mysensorsbootloader2mqtt.lastPublished, expected)
 	}
@@ -78,7 +78,7 @@ func TestMqttDataRequest(t *testing.T) {
 
 	expected := fmt.Sprintf("%s/1/255/4/0/3 %s", mysensorsbootloader2mqtt.pubTopic, "0100010001000C946E000C946E000C946E000C946E00")
 
-	mysensorsbootloader2mqtt.dataRequest(mysensorsbootloader2mqtt.client, msg)
+	mysensorsbootloader2mqtt.dataRequest(mysensorsbootloader2mqtt.client.Client, msg)
 	if mysensorsbootloader2mqtt.lastPublished != expected {
 		t.Errorf("Wrong topic or payload - Actual: %s, Expected: %s", mysensorsbootloader2mqtt.lastPublished, expected)
 	}
@@ -102,11 +102,11 @@ func TestMqttBootloaderCommand(t *testing.T) {
 			payload: []byte(v.Payload),
 		}
 
-		mysensorsbootloader2mqtt.bootloaderCommand(mysensorsbootloader2mqtt.client, msg)
+		mysensorsbootloader2mqtt.bootloaderCommand(mysensorsbootloader2mqtt.client.Client, msg)
 		if _, ok := mysensorsbootloader2mqtt.bootloaderCommands[v.To]; !ok {
 			t.Error("Bootloader command not found")
 		} else {
-			if ok := mysensorsbootloader2mqtt.runBootloaderCommand(mysensorsbootloader2mqtt.client, v.To); !ok {
+			if ok := mysensorsbootloader2mqtt.runBootloaderCommand(mysensorsbootloader2mqtt.client.Client, v.To); !ok {
 				t.Error("Bootloader command not run")
 			} else {
 				expected := fmt.Sprintf("%s/%s/255/4/0/1 %s", mysensorsbootloader2mqtt.pubTopic, v.To, v.ExpectedPayload)
@@ -120,14 +120,14 @@ func TestMqttBootloaderCommand(t *testing.T) {
 
 func TestMqttBadBootloaderCommand(t *testing.T) {
 	mysensorsbootloader2mqtt := defaultTestMQTT()
-	if ok := mysensorsbootloader2mqtt.runBootloaderCommand(mysensorsbootloader2mqtt.client, "1"); ok {
+	if ok := mysensorsbootloader2mqtt.runBootloaderCommand(mysensorsbootloader2mqtt.client.Client, "1"); ok {
 		t.Error("Bootloader command didn't exist, should not have returned true")
 	}
 }
 
 func TestMqttConnect(t *testing.T) {
 	mysensorsbootloader2mqtt := defaultTestMQTT()
-	mysensorsbootloader2mqtt.onConnect(mysensorsbootloader2mqtt.client)
+	mysensorsbootloader2mqtt.onConnect(mysensorsbootloader2mqtt.client.Client)
 }
 
 type mockMessage struct {

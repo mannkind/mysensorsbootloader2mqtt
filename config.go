@@ -3,7 +3,7 @@ package main
 import (
 	"reflect"
 
-	"github.com/caarlos0/env"
+	"github.com/caarlos0/env/v6"
 	mqttExtCfg "github.com/mannkind/paho.mqtt.golang.ext/cfg"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
@@ -21,19 +21,19 @@ type Config struct {
 	DebugLogLevel    bool            `env:"MYSENSORS_DEBUG" envDefault:"false"`
 }
 
-// NewConfig - Returns a new reference to a fully configured object.
-func NewConfig(mqttCfg *mqttExtCfg.MQTTConfig) *Config {
+func newConfig(mqttCfg *mqttExtCfg.MQTTConfig) *Config {
 	c := Config{}
 	c.MQTT = mqttCfg
-	c.MQTT.Defaults("DefaultMySensorsBootloaderClientID", "", "")
 
-	if err := env.ParseWithFuncs(&c, env.CustomParsers{
+	if err := env.ParseWithFuncs(&c, map[reflect.Type]env.ParserFunc{
 		reflect.TypeOf(nodeSettingsMap{}): nodeSettingsParser,
 	}); err != nil {
 		log.WithFields(log.Fields{
 			"error": err,
 		}).Error("Unable to unmarshal configuration")
 	}
+
+	c.MQTT.Defaults("DefaultMySensorsBootloaderClientID", "", "")
 
 	log.WithFields(log.Fields{
 		"MySensors.AutoIDEnabled":    c.AutoIDEnabled,
@@ -43,7 +43,7 @@ func NewConfig(mqttCfg *mqttExtCfg.MQTTConfig) *Config {
 		"MySensors.Nodes":            c.Nodes,
 		"MySensors.FirmwareBasePath": c.FirmwareBasePath,
 		"MySensors.DebugLogLevel":    c.DebugLogLevel,
-	}).Info("Environmental Settings")
+	}).Info("Service Environmental Settings")
 
 	if c.DebugLogLevel {
 		log.SetLevel(log.DebugLevel)

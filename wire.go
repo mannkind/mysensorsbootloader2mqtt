@@ -5,11 +5,11 @@ package main
 import (
 	"github.com/google/wire"
 	mqttExtCfg "github.com/mannkind/paho.mqtt.golang.ext/cfg"
-	mqttExtDI "github.com/mannkind/paho.mqtt.golang.ext/di"
+	mqttExtClient "github.com/mannkind/paho.mqtt.golang.ext/client"
 )
 
 func initialize() *mqttClient {
-	wire.Build(mqttExtCfg.NewMQTTConfig, NewConfig, mqttExtDI.NewMQTTFuncWrapper, newMqttClient)
+	wire.Build(mqttExtCfg.NewMQTTConfig, mqttExtClient.NewMQTTClientWrapper, newConfig, newMQTTClient)
 
 	return &mqttClient{}
 }

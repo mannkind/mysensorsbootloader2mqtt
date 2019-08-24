@@ -5,14 +5,14 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
-	mqttExtDI "github.com/mannkind/paho.mqtt.golang.ext/di"
+	mqttExtClient "github.com/mannkind/paho.mqtt.golang.ext/client"
 	log "github.com/sirupsen/logrus"
 )
 
 type mqttClient struct {
+	client             *mqttExtClient.MQTTClientWrapper
 	subTopic           string
 	pubTopic           string
 	autoIDEnabled      bool
@@ -21,12 +21,11 @@ type mqttClient struct {
 	nodes              nodeSettingsMap
 	bootloaderCommands bootloaderCmdMap
 	lastPublished      string
-	client             mqtt.Client
 }
 
-// newMqttClient - Returns a new reference to a fully configured object.
-func newMqttClient(config *Config, mqttFuncWrapper mqttExtDI.MQTTFuncWrapper) *mqttClient {
+func newMQTTClient(config *Config, client *mqttExtClient.MQTTClientWrapper) *mqttClient {
 	m := mqttClient{
+		client:           client,
 		subTopic:         config.SubTopic,
 		pubTopic:         config.PubTopic,
 		autoIDEnabled:    config.AutoIDEnabled,
@@ -35,8 +34,7 @@ func newMqttClient(config *Config, mqttFuncWrapper mqttExtDI.MQTTFuncWrapper) *m
 		nodes:            config.Nodes,
 	}
 
-	m.client = mqttFuncWrapper(
-		config.MQTT,
+	m.client.Initialize(
 		m.onConnect,
 		m.onDisconnect,
 		"",
@@ -46,46 +44,7 @@ func newMqttClient(config *Config, mqttFuncWrapper mqttExtDI.MQTTFuncWrapper) *m
 }
 
 func (t *mqttClient) run() {
-	t.runAfter(0 * time.Second)
-}
-
-func (t *mqttClient) runAfter(delay time.Duration) {
-	time.Sleep(delay)
-
-	log.Info("Connecting to MQTT")
-	if token := t.client.Connect(); !token.Wait() || token.Error() != nil {
-		log.WithFields(log.Fields{
-			"error": token.Error(),
-		}).Error("Error connecting to MQTT")
-
-		delay = t.adjustReconnectDelay(delay)
-
-		log.WithFields(log.Fields{
-			"delay": delay,
-		}).Info("Sleeping before attempting to reconnect to MQTT")
-
-		t.runAfter(delay)
-	}
-}
-
-func (t *mqttClient) adjustReconnectDelay(delay time.Duration) time.Duration {
-	var maxDelay float64 = 120
-	defaultDelay := 2 * time.Second
-
-	// No delay, set to default delay
-	if delay.Seconds() == 0 {
-		delay = defaultDelay
-	} else {
-		// Increment the delay
-		delay = delay * 2
-
-		// If the delay is above two minutes, reset to default
-		if delay.Seconds() > maxDelay {
-			delay = defaultDelay
-		}
-	}
-
-	return delay
+	t.client.Run()
 }
 
 func (t *mqttClient) onConnect(client mqtt.Client) {

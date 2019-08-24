@@ -7,15 +7,15 @@ package main
 
 import (
 	"github.com/mannkind/paho.mqtt.golang.ext/cfg"
-	"github.com/mannkind/paho.mqtt.golang.ext/di"
+	"github.com/mannkind/paho.mqtt.golang.ext/client"
 )
 
 // Injectors from wire.go:
 
 func initialize() *mqttClient {
 	mqttConfig := cfg.NewMQTTConfig()
-	config := NewConfig(mqttConfig)
-	mqttFuncWrapper := di.NewMQTTFuncWrapper()
-	mainMqttClient := newMqttClient(config, mqttFuncWrapper)
+	config := newConfig(mqttConfig)
+	mqttClientWrapper := di.NewMQTTClientWrapper(mqttConfig)
+	mainMqttClient := newMQTTClient(config, mqttClientWrapper)
 	return mainMqttClient
 }
