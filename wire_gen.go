@@ -6,16 +6,16 @@
 package main
 
 import (
-	"github.com/mannkind/paho.mqtt.golang.ext/cfg"
-	"github.com/mannkind/paho.mqtt.golang.ext/di"
+	"github.com/mannkind/twomqtt"
 )
 
 // Injectors from wire.go:
 
 func initialize() *mqttClient {
-	mqttConfig := cfg.NewMQTTConfig()
-	config := NewConfig(mqttConfig)
-	mqttFuncWrapper := di.NewMQTTFuncWrapper()
-	mainMqttClient := newMqttClient(config, mqttFuncWrapper)
+	mainConfig := newConfig()
+	mainMqttClientConfig := mainConfig.MQTTClientConfig
+	mqttProxyConfig := mainMqttClientConfig.MQTTProxyConfig
+	mqttProxy := twomqtt.NewMQTTProxy(mqttProxyConfig)
+	mainMqttClient := newMQTTClient(mainMqttClientConfig, mqttProxy)
 	return mainMqttClient
 }

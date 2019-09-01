@@ -5,87 +5,38 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"time"
+	"sync"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
-	mqttExtDI "github.com/mannkind/paho.mqtt.golang.ext/di"
+	"github.com/mannkind/twomqtt"
 	log "github.com/sirupsen/logrus"
 )
 
 type mqttClient struct {
-	subTopic           string
-	pubTopic           string
-	autoIDEnabled      bool
-	nextID             uint
-	firmwareBasePath   string
-	nodes              nodeSettingsMap
-	bootloaderCommands bootloaderCmdMap
-	lastPublished      string
-	client             mqtt.Client
+	*twomqtt.MQTTProxy
+	mqttClientConfig
+
+	lastPublished      map[string]string
+	lastPublishedMutex sync.Mutex
 }
 
-// newMqttClient - Returns a new reference to a fully configured object.
-func newMqttClient(config *Config, mqttFuncWrapper mqttExtDI.MQTTFuncWrapper) *mqttClient {
-	m := mqttClient{
-		subTopic:         config.SubTopic,
-		pubTopic:         config.PubTopic,
-		autoIDEnabled:    config.AutoIDEnabled,
-		nextID:           config.NextID,
-		firmwareBasePath: config.FirmwareBasePath,
-		nodes:            config.Nodes,
+func newMQTTClient(mqttClientCfg mqttClientConfig, client *twomqtt.MQTTProxy) *mqttClient {
+	c := mqttClient{
+		MQTTProxy:        client,
+		mqttClientConfig: mqttClientCfg,
+		lastPublished:    map[string]string{},
 	}
 
-	m.client = mqttFuncWrapper(
-		config.MQTT,
-		m.onConnect,
-		m.onDisconnect,
-		"",
+	c.Initialize(
+		c.onConnect,
+		c.onDisconnect,
 	)
 
-	return &m
+	return &c
 }
 
 func (t *mqttClient) run() {
-	t.runAfter(0 * time.Second)
-}
-
-func (t *mqttClient) runAfter(delay time.Duration) {
-	time.Sleep(delay)
-
-	log.Info("Connecting to MQTT")
-	if token := t.client.Connect(); !token.Wait() || token.Error() != nil {
-		log.WithFields(log.Fields{
-			"error": token.Error(),
-		}).Error("Error connecting to MQTT")
-
-		delay = t.adjustReconnectDelay(delay)
-
-		log.WithFields(log.Fields{
-			"delay": delay,
-		}).Info("Sleeping before attempting to reconnect to MQTT")
-
-		t.runAfter(delay)
-	}
-}
-
-func (t *mqttClient) adjustReconnectDelay(delay time.Duration) time.Duration {
-	var maxDelay float64 = 120
-	defaultDelay := 2 * time.Second
-
-	// No delay, set to default delay
-	if delay.Seconds() == 0 {
-		delay = defaultDelay
-	} else {
-		// Increment the delay
-		delay = delay * 2
-
-		// If the delay is above two minutes, reset to default
-		if delay.Seconds() > maxDelay {
-			delay = defaultDelay
-		}
-	}
-
-	return delay
+	t.Run()
 }
 
 func (t *mqttClient) onConnect(client mqtt.Client) {
@@ -93,9 +44,9 @@ func (t *mqttClient) onConnect(client mqtt.Client) {
 
 	// Subscribe to topics
 	subscriptions := map[string]mqtt.MessageHandler{
-		fmt.Sprintf(idRequestTopic, t.subTopic):             t.idRequest,
-		fmt.Sprintf(firmwareConfigRequestTopic, t.subTopic): t.configurationRequest,
-		fmt.Sprintf(firmwareRequestTopic, t.subTopic):       t.dataRequest,
+		fmt.Sprintf(idRequestTopic, t.SubTopic):             t.idRequest,
+		fmt.Sprintf(firmwareConfigRequestTopic, t.SubTopic): t.configurationRequest,
+		fmt.Sprintf(firmwareRequestTopic, t.SubTopic):       t.dataRequest,
 		firmwareBootloaderCommandTopic:                      t.bootloaderCommand,
 	}
 
@@ -121,17 +72,17 @@ func (t *mqttClient) onDisconnect(client mqtt.Client, err error) {
 
 func (t *mqttClient) idRequest(client mqtt.Client, msg mqtt.Message) {
 	log.Info("ID Request")
-	if !t.autoIDEnabled {
+	if !t.AutoIDEnabled {
 		return
 	}
 
-	t.nextID++
+	t.NextID++
 
 	log.WithFields(log.Fields{
-		"id": t.nextID,
+		"id": t.NextID,
 	}).Info("Assigning ID")
 
-	t.publish(client, fmt.Sprintf(idResponseTopic, t.pubTopic), fmt.Sprintf("%d", t.nextID))
+	t.publish(fmt.Sprintf(idResponseTopic, t.PubTopic), fmt.Sprintf("%d", t.NextID))
 }
 
 func (t *mqttClient) configurationRequest(client mqtt.Client, msg mqtt.Message) {
@@ -152,7 +103,7 @@ func (t *mqttClient) configurationRequest(client mqtt.Client, msg mqtt.Message) 
 		Crc:     firmware.Crc,
 	}
 
-	respTopic := fmt.Sprintf(firmwareConfigResponseTopic, t.pubTopic, to)
+	respTopic := fmt.Sprintf(firmwareConfigResponseTopic, t.PubTopic, to)
 	respPayload := resp.String()
 
 	log.WithFields(log.Fields{
@@ -160,7 +111,7 @@ func (t *mqttClient) configurationRequest(client mqtt.Client, msg mqtt.Message) 
 		"req":  req.String(),
 		"resp": respPayload,
 	}).Info("Configuration Request")
-	t.publish(client, respTopic, respPayload)
+	t.publish(respTopic, respPayload)
 }
 
 func (t *mqttClient) dataRequest(client mqtt.Client, msg mqtt.Message) {
@@ -176,7 +127,7 @@ func (t *mqttClient) dataRequest(client mqtt.Client, msg mqtt.Message) {
 	}
 
 	data, _ := firmware.dataForBlock(req.Block)
-	respTopic := fmt.Sprintf(firmwareResponseTopic, t.pubTopic, to)
+	respTopic := fmt.Sprintf(firmwareResponseTopic, t.PubTopic, to)
 	respPayload := resp.String(data)
 
 	llog := log.WithFields(log.Fields{
@@ -194,7 +145,7 @@ func (t *mqttClient) dataRequest(client mqtt.Client, msg mqtt.Message) {
 		llog.Info("Sending block")
 	}
 
-	t.publish(client, respTopic, respPayload)
+	t.publish(respTopic, respPayload)
 }
 
 // Bootloader commands:
@@ -226,19 +177,19 @@ func (t *mqttClient) bootloaderCommand(client mqtt.Client, msg mqtt.Message) {
 		"cmd":     cmd,
 		"payload": payload,
 	}).Info("Bootloader Command")
-	if t.bootloaderCommands == nil {
-		t.bootloaderCommands = make(bootloaderCmdMap)
+	if t.BootloaderCommands == nil {
+		t.BootloaderCommands = make(bootloaderCmdMap)
 	}
-	t.bootloaderCommands[to] = resp
+	t.BootloaderCommands[to] = resp
 }
 
 func (t *mqttClient) runBootloaderCommand(client mqtt.Client, to string) bool {
-	if blcmd, ok := t.bootloaderCommands[to]; ok {
-		outTopic := fmt.Sprintf(firmwareConfigResponseTopic, t.pubTopic, to)
+	if blcmd, ok := t.BootloaderCommands[to]; ok {
+		outTopic := fmt.Sprintf(firmwareConfigResponseTopic, t.PubTopic, to)
 		outPayload := blcmd.String()
-		t.publish(client, outTopic, outPayload)
+		t.publish(outTopic, outPayload)
 
-		delete(t.bootloaderCommands, to)
+		delete(t.BootloaderCommands, to)
 		return true
 	}
 
@@ -256,7 +207,7 @@ func (t *mqttClient) firmwareInfo(nodeID string, firmwareType uint16, firmwareVe
 	// Attempt to load firmware based on the node's request
 	if _, err := os.Stat(fw.Path); err != nil {
 		fw.Type, fw.Version, fw.Source = firmwareType, firmwareVersion, fwReq
-		fw.Path = fmt.Sprintf("%s/%d/%d/firmware.hex", t.firmwareBasePath, fw.Type, fw.Version)
+		fw.Path = fmt.Sprintf("%s/%d/%d/firmware.hex", t.FirmwareBasePath, fw.Type, fw.Version)
 	}
 
 	// Attempt to laod the default firmware
@@ -278,10 +229,10 @@ func (t *mqttClient) firmwareInfoAssignment(nodeID string, source firmwareSource
 	}
 
 	// Attempt to load firmware from the assignment in config.yaml
-	nodeSettings := t.nodes[nodeID]
+	nodeSettings := t.Nodes[nodeID]
 	fw.Type = nodeSettings.Type
 	fw.Version = nodeSettings.Version
-	fw.Path = fmt.Sprintf("%s/%d/%d/firmware.hex", t.firmwareBasePath, fw.Type, fw.Version)
+	fw.Path = fmt.Sprintf("%s/%d/%d/firmware.hex", t.FirmwareBasePath, fw.Type, fw.Version)
 	fw.Source = source
 
 	return fw
@@ -295,16 +246,28 @@ func (t *mqttClient) msgParts(msg mqtt.Message) (string, string, string) {
 	return topic, payload, to
 }
 
-func (t *mqttClient) publish(client mqtt.Client, topic string, payload string) {
+func (t *mqttClient) publish(topic string, payload string) {
+	t.lastPublishedMutex.Lock()
+	defer t.lastPublishedMutex.Unlock()
+
 	llog := log.WithFields(log.Fields{
 		"topic":   topic,
 		"payload": payload,
 	})
-
 	llog.Info("Publishing to MQTT")
-	if token := client.Publish(topic, 0, false, payload); token.Wait() && token.Error() != nil {
-		log.Error("Publishing error")
+
+	retain := false
+	if token := t.Client.Publish(topic, 0, retain, payload); token.Wait() && token.Error() != nil {
+		log.Error("Error publishing to MQTT")
 	}
 
-	t.lastPublished = fmt.Sprintf("%s %s", topic, payload)
+	log.Info("Finished publishing to MQTT")
+	t.lastPublished[topic] = payload
+}
+
+func (t *mqttClient) lastPublishedOnTopic(topic string) string {
+	t.lastPublishedMutex.Lock()
+	defer t.lastPublishedMutex.Unlock()
+
+	return t.lastPublished[topic]
 }

@@ -4,12 +4,17 @@ package main
 
 import (
 	"github.com/google/wire"
-	mqttExtCfg "github.com/mannkind/paho.mqtt.golang.ext/cfg"
-	mqttExtDI "github.com/mannkind/paho.mqtt.golang.ext/di"
+	"github.com/mannkind/twomqtt"
 )
 
 func initialize() *mqttClient {
-	wire.Build(mqttExtCfg.NewMQTTConfig, NewConfig, mqttExtDI.NewMQTTFuncWrapper, newMqttClient)
+	wire.Build(
+		newMQTTClient,
+		newConfig,
+		wire.FieldsOf(new(config), "MQTTClientConfig"),
+		wire.FieldsOf(new(mqttClientConfig), "MQTTProxyConfig"),
+		twomqtt.NewMQTTProxy,
+	)
 
 	return &mqttClient{}
 }
