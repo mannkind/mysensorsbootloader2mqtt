@@ -51,7 +51,7 @@ func TestMqttIDRequest(t *testing.T) {
 		mysensorsbootloader2mqtt.AutoIDEnabled = v.AutoIDEnabled
 		mysensorsbootloader2mqtt.idRequest(mysensorsbootloader2mqtt.Client, msg)
 
-		actual := mysensorsbootloader2mqtt.lastPublishedOnTopic(fmt.Sprintf("%s/255/255/3/0/4", mysensorsbootloader2mqtt.PubTopic))
+		actual := mysensorsbootloader2mqtt.LastPublishedOnTopic(fmt.Sprintf("%s/255/255/3/0/4", mysensorsbootloader2mqtt.PubTopic))
 		expected := v.Response
 		if actual != expected {
 			t.Errorf("Wrong topic or payload - Actual: %s, Expected: %s", actual, expected)
@@ -73,7 +73,7 @@ func TestMqttConfigurationRequest(t *testing.T) {
 
 	mysensorsbootloader2mqtt.configurationRequest(mysensorsbootloader2mqtt.Client, msg)
 
-	actual := mysensorsbootloader2mqtt.lastPublishedOnTopic(fmt.Sprintf("%s/1/255/4/0/1", mysensorsbootloader2mqtt.PubTopic))
+	actual := mysensorsbootloader2mqtt.LastPublishedOnTopic(fmt.Sprintf("%s/1/255/4/0/1", mysensorsbootloader2mqtt.PubTopic))
 	expected := "010001005000D446"
 	if actual != expected {
 		t.Errorf("Wrong topic or payload - Actual: %s, Expected: %s", actual, expected)
@@ -94,7 +94,7 @@ func TestMqttDataRequest(t *testing.T) {
 
 	mysensorsbootloader2mqtt.dataRequest(mysensorsbootloader2mqtt.Client, msg)
 
-	actual := mysensorsbootloader2mqtt.lastPublishedOnTopic(fmt.Sprintf("%s/1/255/4/0/3", mysensorsbootloader2mqtt.PubTopic))
+	actual := mysensorsbootloader2mqtt.LastPublishedOnTopic(fmt.Sprintf("%s/1/255/4/0/3", mysensorsbootloader2mqtt.PubTopic))
 	expected := "0100010001000C946E000C946E000C946E000C946E00"
 	if actual != expected {
 		t.Errorf("Wrong topic or payload - Actual: %s, Expected: %s", actual, expected)
@@ -129,7 +129,7 @@ func TestMqttBootloaderCommand(t *testing.T) {
 			if ok := mysensorsbootloader2mqtt.runBootloaderCommand(mysensorsbootloader2mqtt.Client, v.To); !ok {
 				t.Error("Bootloader command not run")
 			} else {
-				actual := mysensorsbootloader2mqtt.lastPublishedOnTopic(fmt.Sprintf("%s/%s/255/4/0/1", mysensorsbootloader2mqtt.PubTopic, v.To))
+				actual := mysensorsbootloader2mqtt.LastPublishedOnTopic(fmt.Sprintf("%s/%s/255/4/0/1", mysensorsbootloader2mqtt.PubTopic, v.To))
 				expected := v.ExpectedPayload
 				if actual != expected {
 					t.Errorf("Wrong topic or payload - Actual: %s, Expected: %s", actual, expected)

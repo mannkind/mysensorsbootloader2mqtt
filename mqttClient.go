@@ -5,7 +5,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/mannkind/twomqtt"
@@ -15,16 +14,12 @@ import (
 type mqttClient struct {
 	*twomqtt.MQTTProxy
 	mqttClientConfig
-
-	lastPublished      map[string]string
-	lastPublishedMutex sync.Mutex
 }
 
 func newMQTTClient(mqttClientCfg mqttClientConfig, client *twomqtt.MQTTProxy) *mqttClient {
 	c := mqttClient{
 		MQTTProxy:        client,
 		mqttClientConfig: mqttClientCfg,
-		lastPublished:    map[string]string{},
 	}
 
 	c.Initialize(
@@ -247,27 +242,8 @@ func (t *mqttClient) msgParts(msg mqtt.Message) (string, string, string) {
 }
 
 func (t *mqttClient) publish(topic string, payload string) {
-	t.lastPublishedMutex.Lock()
-	defer t.lastPublishedMutex.Unlock()
-
-	llog := log.WithFields(log.Fields{
-		"topic":   topic,
-		"payload": payload,
+	t.PublishWithOpts(topic, payload, twomqtt.MQTTProxyPublishOptions{
+		Retained:       false,
+		DuplicateCheck: false,
 	})
-	llog.Info("Publishing to MQTT")
-
-	retain := false
-	if token := t.Client.Publish(topic, 0, retain, payload); token.Wait() && token.Error() != nil {
-		log.Error("Error publishing to MQTT")
-	}
-
-	log.Info("Finished publishing to MQTT")
-	t.lastPublished[topic] = payload
-}
-
-func (t *mqttClient) lastPublishedOnTopic(topic string) string {
-	t.lastPublishedMutex.Lock()
-	defer t.lastPublishedMutex.Unlock()
-
-	return t.lastPublished[topic]
 }
