@@ -13,6 +13,8 @@ github.com/google/wire v0.3.0/go.mod h1:i1DMg/Lu8Sz5yYl25iOdmc5CT5qusaa+zmRWs167
 github.com/kierdavis/ihex-go v0.0.0-20180105024510-bf28f2206797 h1:W3pEj5EglEQLUAMwE6PBm3Y1DZapp7AOsSeHeDZnTwI=
 github.com/kierdavis/ihex-go v0.0.0-20180105024510-bf28f2206797/go.mod h1:XCg/J3R8D3GZvAYjJx0Q6R9OzF+fUgzYHu2exysdiIE=
 github.com/konsorten/go-windows-terminal-sequences v1.0.1/go.mod h1:T0+1ngSBFLxvqU3pZ+m/2kptfBszLMUkC4ZK/EgS/cQ=
+github.com/magefile/mage v1.9.0 h1:t3AU2wNwehMCW97vuqQLtw6puppWXHO+O2MHo5a50XE=
+github.com/magefile/mage v1.9.0/go.mod h1:z5UZb/iS3GoOSn0JgWuiw7dxlurVYTu+/jHXqQg881A=
 github.com/mannkind/twomqtt v0.1.0 h1:FheIkPMkExcPoTXNVsRlSOn3M1XMhs5hvrbo8oTvqk4=
 github.com/mannkind/twomqtt v0.1.0/go.mod h1:Dj5c1nQlMU2a0L63jg6Uoj/LpUYnfKNKplaCBzDyQQM=
 github.com/mannkind/twomqtt v0.2.0 h1:fwqgo6vCJ2kwjBCESxvmql6Ey4oDTq/Zsv88HpBxTSM=
