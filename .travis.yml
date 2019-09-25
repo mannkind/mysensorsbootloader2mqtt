@@ -5,35 +5,27 @@ language: go
 go:
   - "1.13"
 env:
-  - GO111MODULE="on" DOCKER_CLI_EXPERIMENTAL="enabled"
-addons:
-  apt:
-    packages:
-      - docker-ce
+  - DOCKER_CLI_EXPERIMENTAL="enabled"
 before_install:
-  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-  - sudo docker run --privileged linuxkit/binfmt:v0.6
+  - git clone https://github.com/magefile/mage
+  - cd mage
+  - go run bootstrap.go install
+  - cd -
+  - rm -rf mage
 jobs:
   include:
     - stage: test
       script:
-        - make
-    - stage: deploy-image-dev
-      script:
-        - make
-        - make docker docker-push DOCKER_VERSION_ADDTL=-develop
+        - mage -v go:test
     - stage: deploy-image
       script:
-        - make
+        - mage -v go:test
         - bash <(curl -s https://codecov.io/bash) -f /tmp/app.cover
-        - make docker docker-push
+        - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+        - sudo docker run --privileged linuxkit/binfmt:v0.6
+        - mage -v docker:push git:push
 stages:
   - name: test
-    if: type = pull_request
-  - name: deploy-image-dev
-    if: type = push AND branch != master
+    if: type = pull_request OR (type = push AND branch != master)
   - name: deploy-image
     if: type = push AND branch = master
-deploy:
-  - provider: script
-    script: make docker docker-push

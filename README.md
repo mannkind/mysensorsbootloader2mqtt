@@ -16,12 +16,12 @@ A Firmware Uploading Tool for the MySensors Bootloader via MQTT
 docker run -d --name="mysensorsbootloader2mqtt" -v /etc/localtime:/etc/localtime:ro mannkind/mysensorsbootloader2mqtt
 ```
 
-### Via Make
+### Via Mage
 
 ```bash
 git clone https://github.com/mannkind/mysensorsbootloader2mqtt
 cd mysensorsbootloader2mqtt
-make
+mage
 ./mysensorsbootloader2mqtt
 ```
 
