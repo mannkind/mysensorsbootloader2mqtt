@@ -7,14 +7,14 @@ import (
 	"github.com/mannkind/twomqtt"
 )
 
-func initialize() *mqttClient {
+func initialize() *sink {
 	wire.Build(
-		newMQTTClient,
-		newConfig,
-		wire.FieldsOf(new(config), "MQTTClientConfig"),
-		wire.FieldsOf(new(mqttClientConfig), "MQTTProxyConfig"),
-		twomqtt.NewMQTTProxy,
+		newOpts,
+		newSink,
+		wire.FieldsOf(new(sinkOpts), "MQTTOpts"),
+		wire.FieldsOf(new(opts), "Sink"),
+		twomqtt.NewMQTT,
 	)
 
-	return &mqttClient{}
+	return &sink{}
 }

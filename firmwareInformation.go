@@ -1,8 +1,5 @@
 package main
 
-// firmwareSource - The source of firmware
-type firmwareSource int
-
 // firmwareInformation - Structured information about the firmware
 type firmwareInformation struct {
 	Type    uint16
@@ -10,11 +7,3 @@ type firmwareInformation struct {
 	Path    string
 	Source  firmwareSource
 }
-
-// firmwareSource - The source of firmware
-const (
-	fwUnknown firmwareSource = iota
-	fwNode
-	fwReq
-	fwDefault
-)
