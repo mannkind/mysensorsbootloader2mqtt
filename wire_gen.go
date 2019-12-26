@@ -11,11 +11,11 @@ import (
 
 // Injectors from wire.go:
 
-func initialize() *mqttClient {
-	mainConfig := newConfig()
-	mainMqttClientConfig := mainConfig.MQTTClientConfig
-	mqttProxyConfig := mainMqttClientConfig.MQTTProxyConfig
-	mqttProxy := twomqtt.NewMQTTProxy(mqttProxyConfig)
-	mainMqttClient := newMQTTClient(mainMqttClientConfig, mqttProxy)
-	return mainMqttClient
+func initialize() *sink {
+	mainOpts := newOpts()
+	mainSinkOpts := mainOpts.Sink
+	mqttOpts := mainSinkOpts.MQTTOpts
+	mqtt := twomqtt.NewMQTT(mqttOpts)
+	mainSink := newSink(mqtt, mainSinkOpts)
+	return mainSink
 }
