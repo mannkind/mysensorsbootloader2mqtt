@@ -50,6 +50,7 @@ namespace Mysb.Managers
                 $"NextID: {this.SharedOpts.NextID}\n" +
                 $"SubTopic: {this.SharedOpts.SubTopic}\n" +
                 $"PubTopic: {this.SharedOpts.PubTopic}\n" +
+                $"Resources: {string.Join("; ", this.SharedOpts.Resources)}\n" +
                 $""
             );
         }

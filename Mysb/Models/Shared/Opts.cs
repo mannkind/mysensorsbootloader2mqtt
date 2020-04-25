@@ -44,14 +44,6 @@ namespace Mysb.Models.Shared
         /// </summary>
         /// <typeparam name="SlugMapping"></typeparam>
         /// <returns></returns>
-        public List<NodeFirmwareInfoMapping> Resources { get; set; } = new List<NodeFirmwareInfoMapping>
-        {
-            new NodeFirmwareInfoMapping
-            {
-                NodeId = "default",
-                Type = 1,
-                Version = 1,
-            },
-        };
+        public List<NodeFirmwareInfoMapping> Resources { get; set; } = new List<NodeFirmwareInfoMapping>();
     }
 }
