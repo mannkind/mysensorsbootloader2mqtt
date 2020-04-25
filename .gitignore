@@ -1,9 +1,5 @@
-config.yaml
-Dockerfile.amd64
-Dockerfile.arm32v6
-Dockerfile.arm64v8
-mysensorsbootloader2mqtt
-/.GOPATH
-/bin
-/vendor
 .vscode
+bin
+obj
+output
+TestResults
