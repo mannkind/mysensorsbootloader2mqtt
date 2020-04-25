@@ -13,7 +13,7 @@ namespace Mysb.Models.Shared
         /// 
         /// </summary>
         /// <value></value>
-        public bool AutoIDEnabled { get; set; } = true;
+        public bool AutoIDEnabled { get; set; } = false;
 
         /// <summary>
         /// 
@@ -26,6 +26,18 @@ namespace Mysb.Models.Shared
         /// </summary>
         /// <value></value>
         public string FirmwareBasePath { get; set; } = "/config/firmware";
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <value></value>
+        public string SubTopic { get; set; } = "mysensors_rx";
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <value></value>
+        public string PubTopic { get; set; } = "mysensors_tx";
 
         /// <summary>
         /// 

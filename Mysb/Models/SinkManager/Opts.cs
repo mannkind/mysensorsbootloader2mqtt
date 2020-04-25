@@ -12,18 +12,6 @@ namespace Mysb.Models.SinkManager
         /// <summary>
         /// 
         /// </summary>
-        /// <value></value>
-        public string SubTopic { get; set; } = "mysensors_rx";
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <value></value>
-        public string PubTopic { get; set; } = "mysensors_tx";
-
-        /// <summary>
-        /// 
-        /// </summary>
         public Opts()
         {
             this.DiscoveryEnabled = false;

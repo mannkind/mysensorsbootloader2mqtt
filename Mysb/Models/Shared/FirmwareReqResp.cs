@@ -16,6 +16,6 @@ namespace Mysb.Models.Shared
 
         public override string ToString() =>
             $"Type: {this.Type.ToString()}, Version: {this.Version.ToString()}, " +
-            $"Block: {this.Block.ToString()}";
+            $"Block: {(this.Block + 1).ToString()}";
     }
 }

@@ -35,8 +35,8 @@ namespace Mysb.Managers
             this.SharedOpts = sharedOpts.Value;
             this.AutoIDEnabled = sharedOpts.Value.AutoIDEnabled;
             this.NextID = sharedOpts.Value.NextID;
-            this.SubTopic = opts.Value.SubTopic;
-            this.PubTopic = opts.Value.PubTopic;
+            this.SubTopic = sharedOpts.Value.SubTopic;
+            this.PubTopic = sharedOpts.Value.PubTopic;
             this.FirmwareDAO = loader;
         }
 
@@ -48,8 +48,8 @@ namespace Mysb.Managers
                 $"FirmwareBasePath: {this.SharedOpts.FirmwareBasePath}\n" +
                 $"AutoIDEnabled: {this.SharedOpts.AutoIDEnabled}\n" +
                 $"NextID: {this.SharedOpts.NextID}\n" +
-                $"SubTopic: {this.Opts.SubTopic}\n" +
-                $"PubTopic: {this.Opts.PubTopic}\n" +
+                $"SubTopic: {this.SharedOpts.SubTopic}\n" +
+                $"PubTopic: {this.SharedOpts.PubTopic}\n" +
                 $""
             );
         }
@@ -57,21 +57,15 @@ namespace Mysb.Managers
         /// <inheritdoc />
         protected override async Task HandleSubscribeAsync(CancellationToken cancellationToken = default)
         {
-            var tasks = new List<Task>();
-            foreach (var input in this.Questions)
+            var topics = new List<string>
             {
-                var topics = new List<string>
-                {
-                    $"{this.Opts.SubTopic}/{Const.IdRequestTopicPartial}",
-                    $"{this.Opts.SubTopic}/{Const.FirmwareConfigRequestTopicPartial}",
-                    $"{this.Opts.SubTopic}/{Const.FirmwareRequestTopicPartial}",
-                    Const.FirmwareBootloaderCommandTopicPartial,
-                };
+                $"{this.SubTopic}/{Const.IdRequestTopicPartial}",
+                $"{this.SubTopic}/{Const.FirmwareConfigRequestTopicPartial}",
+                $"{this.SubTopic}/{Const.FirmwareRequestTopicPartial}",
+                Const.FirmwareBootloaderCommandTopic,
+            };
 
-                tasks.Add(this.SubscribeAsync(topics, cancellationToken));
-            }
-
-            await Task.WhenAll(tasks);
+            await this.SubscribeAsync(topics, cancellationToken);
         }
 
         /// <inheritdoc />
@@ -79,14 +73,14 @@ namespace Mysb.Managers
             CancellationToken cancellationToken = default)
         {
             // await base.HandleIncomingMessageAsync(topic, payload, cancellationToken);
-            var bootloaderCommand = Const.FirmwareBootloaderCommandTopicPartial.Replace("/+/+", string.Empty);
+            var bootloaderCommand = Const.FirmwareBootloaderCommandTopic.Replace("/+/+", string.Empty);
             if (topic.StartsWith(bootloaderCommand))
             {
                 this.HandleBootloaderCommand(topic, payload, cancellationToken);
                 return;
             }
 
-            var parts = topic.Replace($"{this.Opts.SubTopic}/", string.Empty).Split('/');
+            var parts = topic.Replace($"{this.SubTopic}/", string.Empty).Split('/');
             if (parts.Length != 5)
             {
                 this.Logger.LogError("Unable to determine the nodeId from the topic; aborting.");
@@ -94,9 +88,9 @@ namespace Mysb.Managers
             }
 
             var nodeId = parts[0];
-            var idRequest = $"{this.Opts.SubTopic}/{Const.IdRequestTopicPartial}";
-            var firmwareConfigRequest = $"{this.Opts.SubTopic}/{nodeId}/{Const.FirmwareConfigRequestTopicPartial}".Replace("+/", string.Empty);
-            var firmwareRequest = $"{this.Opts.SubTopic}/{nodeId}/{Const.FirmwareRequestTopicPartial}".Replace("+/", string.Empty);
+            var idRequest = $"{this.SubTopic}/{Const.IdRequestTopicPartial}";
+            var firmwareConfigRequest = $"{this.SubTopic}/{nodeId}/{Const.FirmwareConfigRequestTopicPartial}".Replace("+/", string.Empty);
+            var firmwareRequest = $"{this.SubTopic}/{nodeId}/{Const.FirmwareRequestTopicPartial}".Replace("+/", string.Empty);
 
             switch (topic)
             {

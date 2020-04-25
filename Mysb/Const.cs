@@ -10,7 +10,7 @@ namespace Mysb
         public const string FirmwareConfigResponseTopicPartial = "255/4/0/1";
         public const string FirmwareRequestTopicPartial = "+/255/4/0/2";
         public const string FirmwareResponseTopicPartial = "255/4/0/3";
-        public const string FirmwareBootloaderCommandTopicPartial = "mysensors/bootloader/+/+";
+        public const string FirmwareBootloaderCommandTopic = "mysensors/bootloader/+/+";
         public const UInt16 FirmwareBlockSize = 16;
     }
 }

@@ -33,7 +33,7 @@ namespace Mysb.DataAccess
         /// <inheritdoc />
         public (string, string) BootloaderCommand(string topic, string payload)
         {
-            var bootloaderCommand = Const.FirmwareBootloaderCommandTopicPartial.Replace("+/+", string.Empty);
+            var bootloaderCommand = Const.FirmwareBootloaderCommandTopic.Replace("+/+", string.Empty);
             var partialTopic = topic.Replace(bootloaderCommand, string.Empty);
             var parts = partialTopic.Split('/');
             if (parts.Length != 2)
@@ -104,12 +104,6 @@ namespace Mysb.DataAccess
                 return string.Empty;
             }
 
-            var block = request.Block + 1;
-            if (block == firmware.Blocks || block == 1 || block % BLOCK_INTERVAL == 0)
-            {
-                this.Logger.LogInformation($"Firmware Request; sending block {block} of {firmware.Blocks}");
-            }
-
             var resp = new FirmwareReqResp
             {
                 Type = fw.Type,
@@ -117,6 +111,12 @@ namespace Mysb.DataAccess
                 Block = request.Block,
                 Data = firmware[request.Block],
             };
+
+            var block = request.Block + 1;
+            if (block == firmware.Blocks || block == 1 || block % BLOCK_INTERVAL == 0)
+            {
+                this.Logger.LogInformation($"Firmware Request; {resp}, Total Blocks: {firmware.Blocks}");
+            }
 
             return this.Pack(resp);
         }
