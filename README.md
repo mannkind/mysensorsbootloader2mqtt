@@ -105,3 +105,13 @@ $ find /path/to/config_folder/firmware
 /path/to/config_folder/firmware/1/2
 /path/to/config_folder/firmware/1/2/firmware.hex
 ```
+
+
+## Prior Implementations
+
+### Golang
+* Last Commit: [f355111de6e05882906d962da9efb4c3b8e4e09c](https://github.com/mannkind/mysensorsbootloader2mqtt/commit/f355111de6e05882906d962da9efb4c3b8e4e09c)
+* Last Docker Image: [mannkind/mysensorsbootloader2mqtt:v0.15.20061.0203](https://hub.docker.com/layers/mannkind/mysensorsbootloader2mqtt/v0.15.20061.0203/images/sha256-8acd24a1447d211d7953f362e38579b16919bbfabf78967b2f9bb77555e9fdcf?context=repo)
+
+### Python (never actually released)
+* Last Commit: [24810b04ea4236b7c59bae5f5d818eb2cca3ba6a](https://github.com/mannkind/mysensorsbootloader2mqtt/tree/python)

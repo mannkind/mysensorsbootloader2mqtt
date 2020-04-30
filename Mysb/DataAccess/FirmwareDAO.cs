@@ -5,10 +5,10 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
-using IntelHexFormatReader;
-using IntelHexFormatReader.Model;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using IntelHexFormatReader;
+using IntelHexFormatReader.Model;
 using Mysb.Models.Shared;
 
 namespace Mysb.DataAccess

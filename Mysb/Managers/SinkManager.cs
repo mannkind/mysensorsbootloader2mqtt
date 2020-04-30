@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Channels;
@@ -5,10 +6,9 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MQTTnet;
-using TwoMQTT.Core.Managers;
-using Mysb.Models.Shared;
 using Mysb.DataAccess;
-using System.Collections.Concurrent;
+using Mysb.Models.Shared;
+using TwoMQTT.Core.Managers;
 
 namespace Mysb.Managers
 {
