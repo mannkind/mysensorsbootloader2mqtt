@@ -29,30 +29,13 @@ namespace Mysb.Managers
         public SinkManager(ILogger<SinkManager> logger, IOptions<Opts> sharedOpts,
             IOptions<Models.SinkManager.Opts> opts, IFirmwareDAO loader) :
             base(logger, opts, Channel.CreateUnbounded<object>().Reader,
-                Channel.CreateUnbounded<object>().Writer, sharedOpts.Value.Resources)
+                Channel.CreateUnbounded<object>().Writer, sharedOpts.Value.Resources, SinkSettings(sharedOpts.Value))
         {
-            this.Opts = opts.Value;
-            this.SharedOpts = sharedOpts.Value;
             this.AutoIDEnabled = sharedOpts.Value.AutoIDEnabled;
             this.NextID = sharedOpts.Value.NextID;
             this.SubTopic = sharedOpts.Value.SubTopic;
             this.PubTopic = sharedOpts.Value.PubTopic;
             this.FirmwareDAO = loader;
-        }
-
-        /// <inheritdoc />
-        protected override void LogSettings()
-        {
-            base.LogSettings();
-            this.Logger.LogInformation(
-                $"FirmwareBasePath: {this.SharedOpts.FirmwareBasePath}\n" +
-                $"AutoIDEnabled: {this.SharedOpts.AutoIDEnabled}\n" +
-                $"NextID: {this.SharedOpts.NextID}\n" +
-                $"SubTopic: {this.SharedOpts.SubTopic}\n" +
-                $"PubTopic: {this.SharedOpts.PubTopic}\n" +
-                $"Resources: {string.Join("; ", this.SharedOpts.Resources)}\n" +
-                $""
-            );
         }
 
         /// <inheritdoc />
@@ -135,16 +118,6 @@ namespace Mysb.Managers
         /// <inheritdoc />
         protected override Task HandleDiscoveryAsync(CancellationToken cancellationToken = default) =>
             Task.CompletedTask;
-
-        /// <summary>
-        /// 
-        /// </summary>
-        private new readonly Models.SinkManager.Opts Opts;
-
-        /// <summary>
-        /// 
-        /// </summary>
-        private readonly Models.Shared.Opts SharedOpts;
 
         /// <summary>
         /// 
@@ -251,5 +224,14 @@ namespace Mysb.Managers
             this.BootloaderCommands[nodeId] = resp;
             return;
         }
+
+        private static string SinkSettings(Models.Shared.Opts sharedOpts) =>
+            $"FirmwareBasePath: {sharedOpts.FirmwareBasePath}\n" +
+            $"AutoIDEnabled: {sharedOpts.AutoIDEnabled}\n" +
+            $"NextID: {sharedOpts.NextID}\n" +
+            $"SubTopic: {sharedOpts.SubTopic}\n" +
+            $"PubTopic: {sharedOpts.PubTopic}\n" +
+            $"Resources: {string.Join("; ", sharedOpts.Resources)}\n" +
+            $"";
     }
 }
