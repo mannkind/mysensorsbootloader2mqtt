@@ -8,11 +8,11 @@ using Microsoft.Extensions.Logging;
 using Mysb.DataAccess;
 using Mysb.Managers;
 using TwoMQTT.Core;
-
+using TwoMQTT.Core.Extensions;
 
 namespace Mysb
 {
-    class Program : ConsoleProgram
+    class Program : ConsoleProgram<object, object, SourceManager, SinkManager>
     {
         static async Task Main(string[] args)
         {
@@ -23,14 +23,10 @@ namespace Mysb
 
         protected override IServiceCollection ConfigureServices(HostBuilderContext hostContext, IServiceCollection services)
         {
-            var sinkSect = hostContext.Configuration.GetSection(Models.SinkManager.Opts.Section);
-            var sharedSect = hostContext.Configuration.GetSection(Models.Shared.Opts.Section);
-
             return services
-                .Configure<Models.SinkManager.Opts>(sinkSect)
-                .Configure<Models.Shared.Opts>(sharedSect)
-                .AddSingleton<IFirmwareDAO, FirmwareDAO>()
-                .AddSingleton<IHostedService, SinkManager>();
+                .ConfigureOpts<Models.Shared.Opts>(hostContext, Models.Shared.Opts.Section)
+                .ConfigureOpts<Models.SinkManager.Opts>(hostContext, Models.SinkManager.Opts.Section)
+                .AddSingleton<IFirmwareDAO, FirmwareDAO>();
         }
 
         [Obsolete("Remove in the near future.")]

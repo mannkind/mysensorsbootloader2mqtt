@@ -23,13 +23,14 @@ namespace Mysb.Managers
         /// <param name="logger"></param>
         /// <param name="sharedOpts"></param>
         /// <param name="opts"></param>
+        /// <param name="incomingData"></param>
+        /// <param name="outgoingCommand"></param>
         /// <param name="loader"></param>
         /// <typeparam name="object"></typeparam>
         /// <returns></returns>
         public SinkManager(ILogger<SinkManager> logger, IOptions<Opts> sharedOpts,
-            IOptions<Models.SinkManager.Opts> opts, IFirmwareDAO loader) :
-            base(logger, opts, Channel.CreateUnbounded<object>().Reader,
-                Channel.CreateUnbounded<object>().Writer, sharedOpts.Value.Resources, SinkSettings(sharedOpts.Value))
+            IOptions<Models.SinkManager.Opts> opts, ChannelReader<object> incomingData, ChannelWriter<object> outgoingCommand, IFirmwareDAO loader) :
+            base(logger, opts, incomingData, outgoingCommand, sharedOpts.Value.Resources, SinkSettings(sharedOpts.Value))
         {
             this.AutoIDEnabled = sharedOpts.Value.AutoIDEnabled;
             this.NextID = sharedOpts.Value.NextID;
