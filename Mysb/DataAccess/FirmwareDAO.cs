@@ -63,14 +63,14 @@ namespace Mysb.DataAccess
             var fw = this.FirmwareInfo(nodeId, request.Type, request.Version);
             if (fw == null)
             {
-                this.Logger.LogError($"Firmware Request; unable to find firmware {request.Type} version {request.Version}");
+                this.Logger.LogError($"Firmware Config; From NodeId: {nodeId}; unable to find firmware {request.Type} version {request.Version}");
                 return string.Empty;
             }
 
             var firmware = await this.LoadFromFileAsync(fw.Path, cancellationToken);
             if (firmware == null)
             {
-                this.Logger.LogError($"Firmware Request; unable to read firmware {request.Type} version {request.Version}");
+                this.Logger.LogError($"Firmware Config; From NodeId: {nodeId}; unable to read firmware {request.Type} version {request.Version}");
                 return string.Empty;
             }
 
@@ -82,7 +82,7 @@ namespace Mysb.DataAccess
                 Crc = firmware.Crc,
             };
 
-            this.Logger.LogInformation($"FirmmwareConfig Request: {resp}");
+            this.Logger.LogInformation($"FirmmwareConfig Config; NodeId: {nodeId}, {resp}");
             return this.Pack(resp);
         }
 
@@ -93,14 +93,14 @@ namespace Mysb.DataAccess
             var fw = this.FirmwareInfo(nodeId, request.Type, request.Version);
             if (fw == null)
             {
-                this.Logger.LogError($"Firmware Request; unable to find firmware {request.Type} version {request.Version}");
+                this.Logger.LogError($"Firmware Request; From NodeId: {nodeId}; unable to find firmware {request.Type} version {request.Version}");
                 return string.Empty;
             }
 
             var firmware = await this.LoadFromFileAsync(fw.Path, cancellationToken);
             if (firmware == null)
             {
-                this.Logger.LogError($"Firmware Request; unable to read firmware {request.Type} version {request.Version}");
+                this.Logger.LogError($"Firmware Request; From NodeId: {nodeId}; unable to read firmware {request.Type} version {request.Version}");
                 return string.Empty;
             }
 
@@ -115,7 +115,7 @@ namespace Mysb.DataAccess
             var block = request.Block + 1;
             if (block == firmware.Blocks || block == 1 || block % BLOCK_INTERVAL == 0)
             {
-                this.Logger.LogInformation($"Firmware Request; {resp}, Total Blocks: {firmware.Blocks}");
+                this.Logger.LogInformation($"Firmware Request; From NodeId: {nodeId}, {resp}, Total Blocks: {firmware.Blocks}");
             }
 
             return this.Pack(resp);
