@@ -11,7 +11,7 @@
   <ItemGroup>
     <PackageReference Include="IntelHexFormatReader" Version="2.2.3" />
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="2.2.0" />
-    <PackageReference Include="twomqtt" Version="0.5.20143.16240-dev" />
+    <PackageReference Include="twomqtt" Version="0.5.*" />
   </ItemGroup>
 
 </Project>
