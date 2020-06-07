@@ -40,7 +40,7 @@ namespace Mysb.Managers
         }
 
         /// <inheritdoc />
-        protected override async Task HandleSubscribeAsync(CancellationToken cancellationToken = default)
+        protected override IEnumerable<string> Subscriptions()
         {
             var topics = new List<string>
             {
@@ -50,7 +50,7 @@ namespace Mysb.Managers
                 Const.FirmwareBootloaderCommandTopic,
             };
 
-            await this.SubscribeAsync(topics, cancellationToken);
+            return topics;
         }
 
         /// <inheritdoc />
@@ -111,14 +111,6 @@ namespace Mysb.Managers
                 cancellationToken
             );
         }
-
-        /// <inheritdoc />
-        protected override Task HandleIncomingDataAsync(object input, CancellationToken cancellationToken = default) =>
-            Task.CompletedTask;
-
-        /// <inheritdoc />
-        protected override Task HandleDiscoveryAsync(CancellationToken cancellationToken = default) =>
-            Task.CompletedTask;
 
         /// <summary>
         /// 
