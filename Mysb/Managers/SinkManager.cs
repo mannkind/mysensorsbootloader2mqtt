@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MQTTnet;
+using MQTTnet.Extensions.ManagedClient;
 using Mysb.DataAccess;
 using Mysb.Models.Shared;
 using TwoMQTT.Core.Managers;
@@ -28,9 +29,9 @@ namespace Mysb.Managers
         /// <param name="loader"></param>
         /// <typeparam name="object"></typeparam>
         /// <returns></returns>
-        public SinkManager(ILogger<SinkManager> logger, IOptions<Opts> sharedOpts,
-            IOptions<Models.SinkManager.Opts> opts, ChannelReader<object> incomingData, ChannelWriter<object> outgoingCommand, IFirmwareDAO loader) :
-            base(logger, opts, incomingData, outgoingCommand, sharedOpts.Value.Resources, SinkSettings(sharedOpts.Value))
+        public SinkManager(ILogger<SinkManager> logger, IOptions<Opts> sharedOpts, IOptions<Models.SinkManager.Opts> opts,
+            IManagedMqttClient client, ChannelReader<object> incomingData, ChannelWriter<object> outgoingCommand, IFirmwareDAO loader) :
+            base(logger, opts, client, incomingData, outgoingCommand, sharedOpts.Value.Resources, SinkSettings(sharedOpts.Value))
         {
             this.AutoIDEnabled = sharedOpts.Value.AutoIDEnabled;
             this.NextID = sharedOpts.Value.NextID;
