@@ -1,18 +1,18 @@
 using TwoMQTT.Core.Models;
 
-namespace Mysb.Models.SinkManager
+namespace Mysb.Models.Options
 {
     /// <summary>
     /// The sink options
     /// </summary>
-    public class Opts : MQTTManagerOptions
+    public class MQTTOpts : MQTTManagerOptions
     {
         public const string Section = "Mysb:MQTT";
 
         /// <summary>
         /// 
         /// </summary>
-        public Opts()
+        public MQTTOpts()
         {
             this.DiscoveryEnabled = false;
             this.TopicPrefix = "home/mysb";

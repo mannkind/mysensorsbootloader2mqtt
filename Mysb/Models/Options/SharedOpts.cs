@@ -1,11 +1,12 @@
 using System.Collections.Generic;
+using Mysb.Models.Shared;
 
-namespace Mysb.Models.Shared
+namespace Mysb.Models.Options
 {
     /// <summary>
     /// The shared options across the application
     /// </summary>
-    public class Opts
+    public class SharedOpts
     {
         public const string Section = "Mysb";
 

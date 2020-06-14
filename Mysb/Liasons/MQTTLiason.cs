@@ -1,64 +1,61 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
-using System.Threading.Channels;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MQTTnet;
 using MQTTnet.Extensions.ManagedClient;
 using Mysb.DataAccess;
-using Mysb.Models.Shared;
-using TwoMQTT.Core.Managers;
+using Mysb.Models.Options;
+using TwoMQTT.Core.Interfaces;
+using TwoMQTT.Core.Models;
+using TwoMQTT.Core.Utils;
 
-namespace Mysb.Managers
+namespace Mysb.Liasons
 {
     /// <summary>
     /// An class representing a managed way to interact with a sink.
     /// </summary>
-    public class SinkManager : MQTTManager<NodeFirmwareInfoMapping, object, object>
+    public class MQTTLiason : IMQTTLiason<object, object>
     {
         /// <summary>
-        /// Initializes a new instance of the SinkManager class.
+        /// Initializes a new instance of the MQTTLiason class.
         /// </summary>
         /// <param name="logger"></param>
+        /// <param name="generator"></param>
         /// <param name="sharedOpts"></param>
-        /// <param name="opts"></param>
-        /// <param name="incomingData"></param>
-        /// <param name="outgoingCommand"></param>
-        /// <param name="loader"></param>
-        /// <typeparam name="object"></typeparam>
-        /// <returns></returns>
-        public SinkManager(ILogger<SinkManager> logger, IOptions<Opts> sharedOpts, IOptions<Models.SinkManager.Opts> opts,
-            IManagedMqttClient client, ChannelReader<object> incomingData, ChannelWriter<object> outgoingCommand, IFirmwareDAO loader) :
-            base(logger, opts, client, incomingData, outgoingCommand, sharedOpts.Value.Resources, SinkSettings(sharedOpts.Value))
+        public MQTTLiason(ILogger<MQTTLiason> logger, IMQTTGenerator generator, IFirmwareDAO loader, IOptions<SharedOpts> sharedOpts)
         {
+            this.Logger = logger;
+            this.Generator = generator;
+            this.Loader = loader;
             this.AutoIDEnabled = sharedOpts.Value.AutoIDEnabled;
             this.NextID = sharedOpts.Value.NextID;
             this.SubTopic = sharedOpts.Value.SubTopic;
             this.PubTopic = sharedOpts.Value.PubTopic;
-            this.FirmwareDAO = loader;
+
+            this.Logger.LogInformation(
+                $"FirmwareBasePath: {sharedOpts.Value.FirmwareBasePath}\n" +
+                $"AutoIDEnabled: {sharedOpts.Value.AutoIDEnabled}\n" +
+                $"NextID: {sharedOpts.Value.NextID}\n" +
+                $"SubTopic: {sharedOpts.Value.SubTopic}\n" +
+                $"PubTopic: {sharedOpts.Value.PubTopic}\n" +
+                $"Resources: {string.Join("; ", sharedOpts.Value.Resources)}\n" +
+                $""
+            );
         }
 
         /// <inheritdoc />
-        protected override IEnumerable<string> Subscriptions()
-        {
-            var topics = new List<string>
-            {
-                $"{this.SubTopic}/{Const.IdRequestTopicPartial}",
-                $"{this.SubTopic}/{Const.FirmwareConfigRequestTopicPartial}",
-                $"{this.SubTopic}/{Const.FirmwareRequestTopicPartial}",
-                Const.FirmwareBootloaderCommandTopic,
-            };
-
-            return topics;
-        }
+        public IEnumerable<(string topic, string payload)> MapData(object input) =>
+            new List<(string, string)>();
 
         /// <inheritdoc />
-        protected override async Task HandleIncomingMessageAsync(string topic, string payload,
+        public async Task HandleCommand(IManagedMqttClient client, string topic, string payload,
             CancellationToken cancellationToken = default)
         {
-            // await base.HandleIncomingMessageAsync(topic, payload, cancellationToken);
+            var results = new List<object>();
+
             var bootloaderCommand = Const.FirmwareBootloaderCommandTopic.Replace("/+/+", string.Empty);
             if (topic.StartsWith(bootloaderCommand))
             {
@@ -81,15 +78,15 @@ namespace Mysb.Managers
             switch (topic)
             {
                 case string s when s == idRequest:
-                    await this.HandleIdRequest(cancellationToken);
+                    await this.HandleIdRequest(client, cancellationToken);
                     break;
 
                 case string s when s == firmwareConfigRequest:
-                    await this.HandleFirmwareConfigRequest(nodeId, payload, cancellationToken);
+                    await this.HandleFirmwareConfigRequest(client, nodeId, payload, cancellationToken);
                     break;
 
                 case string s when s == firmwareRequest:
-                    await this.HandleFirmwareRequest(nodeId, payload, cancellationToken);
+                    await this.HandleFirmwareRequest(client, nodeId, payload, cancellationToken);
                     break;
 
                 case string s when s.StartsWith(bootloaderCommand):
@@ -97,21 +94,39 @@ namespace Mysb.Managers
             }
         }
 
-        /// <summary>
-        /// Publish topics + payloads
-        /// </summary>
-        protected new async Task PublishAsync(string topic, string payload, CancellationToken cancellationToken = default)
+
+        /// <inheritdoc />
+        public IEnumerable<string> Subscriptions()
         {
-            this.Logger.LogDebug($"Publishing '{payload}' on '{topic}'");
-            await this.Client.PublishAsync(
-                new MqttApplicationMessageBuilder()
-                    .WithTopic(topic)
-                    .WithPayload(payload)
-                    .WithExactlyOnceQoS()
-                    .Build(),
-                cancellationToken
-            );
+            var topics = new List<string>
+            {
+                $"{this.SubTopic}/{Const.IdRequestTopicPartial}",
+                $"{this.SubTopic}/{Const.FirmwareConfigRequestTopicPartial}",
+                $"{this.SubTopic}/{Const.FirmwareRequestTopicPartial}",
+                Const.FirmwareBootloaderCommandTopic,
+            };
+
+            return topics;
         }
+
+        /// <inheritdoc />
+        public IEnumerable<(string slug, string sensor, string type, MQTTDiscovery discovery)> Discoveries() =>
+            new List<(string slug, string sensor, string type, MQTTDiscovery discovery)>();
+
+        /// <summary>
+        /// The logger used internally.
+        /// </summary>
+        private readonly ILogger<MQTTLiason> Logger;
+
+        /// <summary>
+        /// The MQTT generator used for things such as availability topic, state topic, command topic, etc.
+        /// </summary>
+        private IMQTTGenerator Generator;
+
+        /// <summary>
+        /// The firmware loader that loads firmware from disk.
+        /// </summary>
+        private readonly IFirmwareDAO Loader;
 
         /// <summary>
         /// 
@@ -136,11 +151,6 @@ namespace Mysb.Managers
         /// <summary>
         /// 
         /// </summary>
-        private readonly IFirmwareDAO FirmwareDAO;
-
-        /// <summary>
-        /// 
-        /// </summary>
         /// <typeparam name="string"></typeparam>
         /// <typeparam name="FirmwareConfigReqResp"></typeparam>
         /// <returns></returns>
@@ -151,7 +161,7 @@ namespace Mysb.Managers
         /// </summary>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        private async Task HandleIdRequest(CancellationToken cancellationToken = default)
+        private async Task HandleIdRequest(IManagedMqttClient client, CancellationToken cancellationToken = default)
         {
             if (!this.AutoIDEnabled)
             {
@@ -162,7 +172,7 @@ namespace Mysb.Managers
 
             var respTopic = $"{this.PubTopic}/{Const.IdResponseTopicPartial}";
             var respPayload = this.NextID.ToString();
-            await this.PublishAsync(respTopic, respPayload, cancellationToken);
+            await this.PublishAsync(client, respTopic, respPayload, cancellationToken);
         }
 
         /// <summary>
@@ -172,18 +182,19 @@ namespace Mysb.Managers
         /// <param name="payload"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        private async Task HandleFirmwareConfigRequest(string nodeId, string payload, CancellationToken cancellationToken = default)
+        private async Task HandleFirmwareConfigRequest(IManagedMqttClient client, string nodeId, string payload,
+            CancellationToken cancellationToken = default)
         {
             var respTopic = $"{this.PubTopic}/{nodeId}/{Const.FirmwareConfigResponseTopicPartial}";
 
             if (this.BootloaderCommands.ContainsKey(nodeId) && this.BootloaderCommands.TryRemove(nodeId, out var bootloaderPayload))
             {
-                await this.PublishAsync(respTopic, bootloaderPayload, cancellationToken);
+                await this.PublishAsync(client, respTopic, bootloaderPayload, cancellationToken);
                 return;
             }
 
-            var respPayload = await this.FirmwareDAO.FirmwareConfigAsync(nodeId, payload, cancellationToken);
-            await this.PublishAsync(respTopic, respPayload, cancellationToken);
+            var respPayload = await this.Loader.FirmwareConfigAsync(nodeId, payload, cancellationToken);
+            await this.PublishAsync(client, respTopic, respPayload, cancellationToken);
         }
 
         /// <summary>
@@ -193,11 +204,12 @@ namespace Mysb.Managers
         /// <param name="payload"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        private async Task HandleFirmwareRequest(string nodeId, string payload, CancellationToken cancellationToken = default)
+        private async Task HandleFirmwareRequest(IManagedMqttClient client, string nodeId, string payload,
+            CancellationToken cancellationToken = default)
         {
             var respTopic = $"{this.PubTopic}/{nodeId}/{Const.FirmwareResponseTopicPartial}";
-            var respPayload = await this.FirmwareDAO.FirmwareAsync(nodeId, payload, cancellationToken);
-            await this.PublishAsync(respTopic, respPayload, cancellationToken);
+            var respPayload = await this.Loader.FirmwareAsync(nodeId, payload, cancellationToken);
+            await this.PublishAsync(client, respTopic, respPayload, cancellationToken);
         }
 
         /// <summary>
@@ -207,9 +219,10 @@ namespace Mysb.Managers
         /// <param name="payload"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        private void HandleBootloaderCommand(string topic, string payload, CancellationToken cancellationToken = default)
+        private void HandleBootloaderCommand(string topic, string payload,
+            CancellationToken cancellationToken = default)
         {
-            var (nodeId, resp) = this.FirmwareDAO.BootloaderCommand(topic, payload);
+            var (nodeId, resp) = this.Loader.BootloaderCommand(topic, payload);
             if (string.IsNullOrEmpty(nodeId))
             {
                 return;
@@ -219,13 +232,21 @@ namespace Mysb.Managers
             return;
         }
 
-        private static string SinkSettings(Models.Shared.Opts sharedOpts) =>
-            $"FirmwareBasePath: {sharedOpts.FirmwareBasePath}\n" +
-            $"AutoIDEnabled: {sharedOpts.AutoIDEnabled}\n" +
-            $"NextID: {sharedOpts.NextID}\n" +
-            $"SubTopic: {sharedOpts.SubTopic}\n" +
-            $"PubTopic: {sharedOpts.PubTopic}\n" +
-            $"Resources: {string.Join("; ", sharedOpts.Resources)}\n" +
-            $"";
+
+        /// <summary>
+        /// Publish topics + payloads
+        /// </summary>
+        private async Task PublishAsync(IManagedMqttClient client, string topic, string payload,
+            CancellationToken cancellationToken = default)
+        {
+            this.Logger.LogDebug($"Publishing '{payload}' on '{topic}'");
+            await client.PublishAsync(
+                new MqttApplicationMessageBuilder()
+                    .WithTopic(topic)
+                    .WithPayload(payload)
+                    .Build(),
+                cancellationToken
+            );
+        }
     }
 }
