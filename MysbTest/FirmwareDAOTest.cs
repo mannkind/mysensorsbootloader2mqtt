@@ -9,6 +9,7 @@ using System.Linq;
 using System.IO;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Mysb.Models.Options;
 
 namespace MysbTest
 {
@@ -31,7 +32,7 @@ namespace MysbTest
             foreach (var test in tests)
             {
                 var logger = new Mock<ILogger<ExposedFirmwareDAO>>().Object;
-                var opts = Options.Create(new Opts
+                var opts = Options.Create(new SharedOpts
                 {
                     Resources = new List<NodeFirmwareInfoMapping> { test.Node },
                     FirmwareBasePath = Const.TestFilesBasePath,
@@ -64,7 +65,7 @@ namespace MysbTest
             foreach (var test in tests)
             {
                 var logger = new Mock<ILogger<ExposedFirmwareDAO>>().Object;
-                var opts = Options.Create(new Opts
+                var opts = Options.Create(new SharedOpts
                 {
                     Resources = new List<NodeFirmwareInfoMapping> { test.Node },
                     FirmwareBasePath = Const.TestFilesBasePath,
@@ -97,7 +98,7 @@ namespace MysbTest
             foreach (var test in tests)
             {
                 var logger = new Mock<ILogger<ExposedFirmwareDAO>>().Object;
-                var opts = Options.Create(new Opts
+                var opts = Options.Create(new SharedOpts
                 {
                     FirmwareBasePath = Const.TestFilesBasePath,
                 });
@@ -121,7 +122,7 @@ namespace MysbTest
             foreach (var test in tests)
             {
                 var logger = new Mock<ILogger<ExposedFirmwareDAO>>().Object;
-                var opts = Options.Create(new Opts
+                var opts = Options.Create(new SharedOpts
                 {
                     FirmwareBasePath = Const.TestFilesBasePath,
                 });
@@ -176,7 +177,7 @@ namespace MysbTest
             foreach (var test in tests)
             {
                 var logger = new Mock<ILogger<ExposedFirmwareDAO>>().Object;
-                var opts = Options.Create(new Opts
+                var opts = Options.Create(new SharedOpts
                 {
                     FirmwareBasePath = Const.TestFilesBasePath,
                 });
@@ -189,7 +190,8 @@ namespace MysbTest
 
     public class ExposedFirmwareDAO : FirmwareDAO
     {
-        public ExposedFirmwareDAO(ILogger<ExposedFirmwareDAO> logger, IOptions<Opts> sharedOpts) : base(logger, sharedOpts)
+        public ExposedFirmwareDAO(ILogger<ExposedFirmwareDAO> logger, IOptions<SharedOpts> sharedOpts) :
+            base(logger, sharedOpts.Value.FirmwareBasePath, sharedOpts.Value.Resources)
         {
         }
 
