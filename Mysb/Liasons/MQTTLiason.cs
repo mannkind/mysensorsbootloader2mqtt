@@ -36,13 +36,19 @@ namespace Mysb.Liasons
             this.PubTopic = sharedOpts.Value.PubTopic;
 
             this.Logger.LogInformation(
-                $"FirmwareBasePath: {sharedOpts.Value.FirmwareBasePath}\n" +
-                $"AutoIDEnabled: {sharedOpts.Value.AutoIDEnabled}\n" +
-                $"NextID: {sharedOpts.Value.NextID}\n" +
-                $"SubTopic: {sharedOpts.Value.SubTopic}\n" +
-                $"PubTopic: {sharedOpts.Value.PubTopic}\n" +
-                $"Resources: {string.Join("; ", sharedOpts.Value.Resources)}\n" +
-                $""
+                "FirmwareBasePath: {firmwareBasePath}\n" +
+                "AutoIDEnabled: {autoIDEnabled}\n" +
+                "NextID: {nextID}\n" +
+                "SubTopic: {subTopic}\n" +
+                "PubTopic: {pubTopic}\n" +
+                "Resources: {@resources)}\n" +
+                "",
+                sharedOpts.Value.FirmwareBasePath,
+                sharedOpts.Value.AutoIDEnabled,
+                sharedOpts.Value.NextID,
+                sharedOpts.Value.SubTopic,
+                sharedOpts.Value.PubTopic,
+                sharedOpts.Value.Resources
             );
         }
 
@@ -239,7 +245,7 @@ namespace Mysb.Liasons
         private async Task PublishAsync(IManagedMqttClient client, string topic, string payload,
             CancellationToken cancellationToken = default)
         {
-            this.Logger.LogDebug($"Publishing '{payload}' on '{topic}'");
+            this.Logger.LogDebug("Publishing '{payload}' on '{topic}'", payload, topic);
             await client.PublishAsync(
                 new MqttApplicationMessageBuilder()
                     .WithTopic(topic)
