@@ -91,14 +91,14 @@ namespace Mysb.DataAccess
             var fw = this.FirmwareInfo(nodeId, request.Type, request.Version);
             if (fw == null)
             {
-                this.Logger.LogError($"Firmware Config; From NodeId: {nodeId}; unable to find firmware {request.Type} version {request.Version}");
+                this.Logger.LogError("Firmware Config; From NodeId: {nodeId}; unable to find firmware {type} version {version}", nodeId, request.Type, request.Version);
                 return string.Empty;
             }
 
             var firmware = await this.LoadFromFileAsync(fw.Path, cancellationToken);
             if (firmware == null)
             {
-                this.Logger.LogError($"Firmware Config; From NodeId: {nodeId}; unable to read firmware {request.Type} version {request.Version}");
+                this.Logger.LogError("Firmware Config; From NodeId: {nodeId}; unable to read firmware {type} version {version}", nodeId, request.Type, request.Version);
                 return string.Empty;
             }
 
@@ -110,7 +110,7 @@ namespace Mysb.DataAccess
                 Crc = firmware.Crc,
             };
 
-            this.Logger.LogInformation($"FirmmwareConfig Config; NodeId: {nodeId}, {resp}");
+            this.Logger.LogInformation("FirmmwareConfig Config; NodeId: {nodeId}, {resp}", nodeId, resp);
             return this.Pack(resp);
         }
 
@@ -121,14 +121,14 @@ namespace Mysb.DataAccess
             var fw = this.FirmwareInfo(nodeId, request.Type, request.Version);
             if (fw == null)
             {
-                this.Logger.LogError($"Firmware Request; From NodeId: {nodeId}; unable to find firmware {request.Type} version {request.Version}");
+                this.Logger.LogError("Firmware Request; From NodeId: {nodeId}; unable to find firmware {type} version {version}", nodeId, request.Type, request.Version);
                 return string.Empty;
             }
 
             var firmware = await this.LoadFromFileAsync(fw.Path, cancellationToken);
             if (firmware == null)
             {
-                this.Logger.LogError($"Firmware Request; From NodeId: {nodeId}; unable to read firmware {request.Type} version {request.Version}");
+                this.Logger.LogError("Firmware Request; From NodeId: {nodeId}; unable to read firmware {type} version {version}", nodeId, request.Type, request.Version);
                 return string.Empty;
             }
 
@@ -143,7 +143,7 @@ namespace Mysb.DataAccess
             var block = request.Block + 1;
             if (block == firmware.Blocks || block == 1 || block % BLOCK_INTERVAL == 0)
             {
-                this.Logger.LogInformation($"Firmware Request; From NodeId: {nodeId}, {resp}, Total Blocks: {firmware.Blocks}");
+                this.Logger.LogInformation("Firmware Request; From NodeId: {nodeId}, {resp}, Total Blocks: {blocks}", nodeId, resp, firmware.Blocks);
             }
 
             return this.Pack(resp);
@@ -159,7 +159,7 @@ namespace Mysb.DataAccess
         {
             if (!File.Exists(path))
             {
-                this.Logger.LogError($"File does not exist {path}");
+                this.Logger.LogError("File does not exist {path}", path);
                 return null;
             }
 
@@ -307,14 +307,14 @@ namespace Mysb.DataAccess
         private LoadedFirmwareInfo? FirmwareInfo(string nodeId, ushort firmwareType, ushort firmwareVersion)
         {
             // Load the user-defined firmware 
-            this.Logger.LogDebug($"Loading user-defined firmware for nodeId {nodeId}");
+            this.Logger.LogDebug("Loading user-defined firmware for nodeId {nodeId}", nodeId);
             var fw = this.Questions.FirstOrDefault(x => x.NodeId == nodeId);
             var path = this.PathToFirmware(fw?.Type, fw?.Version);
 
             // Load the node-defined firmware
             if (fw == null || !File.Exists(path))
             {
-                this.Logger.LogDebug($"Loading node-defined firmware for type {firmwareType} and version {firmwareVersion}");
+                this.Logger.LogDebug("Loading node-defined firmware for type {firmwareType} and version {firmwareVersion}", firmwareType, firmwareVersion);
                 fw = new NodeFirmwareInfoMapping
                 {
                     Type = firmwareType,
@@ -326,7 +326,7 @@ namespace Mysb.DataAccess
             // Load the user-defined default firmware
             if (fw == null || !File.Exists(path))
             {
-                this.Logger.LogDebug($"Loading user-defined default firmware");
+                this.Logger.LogDebug("Loading user-defined default firmware");
                 fw = this.Questions.FirstOrDefault(x => x.NodeId == "default");
                 path = this.PathToFirmware(fw?.Type, fw?.Version);
             }
