@@ -1,12 +1,13 @@
 using System.Collections.Generic;
 using Mysb.Models.Shared;
+using TwoMQTT.Core.Interfaces;
 
 namespace Mysb.Models.Options
 {
     /// <summary>
     /// The shared options across the application
     /// </summary>
-    public class SharedOpts
+    public class SharedOpts : ISharedOpts<NodeFirmwareInfoMapping>
     {
         public const string Section = "Mysb";
 
