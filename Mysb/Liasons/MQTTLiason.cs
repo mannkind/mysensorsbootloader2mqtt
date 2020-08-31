@@ -8,7 +8,9 @@ using MQTTnet;
 using MQTTnet.Extensions.ManagedClient;
 using Mysb.DataAccess;
 using Mysb.Models.Options;
+using Mysb.Models.Shared;
 using TwoMQTT.Core.Interfaces;
+using TwoMQTT.Core.Liasons;
 using TwoMQTT.Core.Models;
 using TwoMQTT.Core.Utils;
 
@@ -17,18 +19,18 @@ namespace Mysb.Liasons
     /// <summary>
     /// An class representing a managed way to interact with a sink.
     /// </summary>
-    public class MQTTLiason : IMQTTLiason<object, object>
+    public class MQTTLiason : MQTTLiasonBase<object, object, NodeFirmwareInfoMapping, SharedOpts>, IMQTTLiason<object, object>
     {
         /// <summary>
         /// Initializes a new instance of the MQTTLiason class.
         /// </summary>
         /// <param name="logger"></param>
         /// <param name="generator"></param>
+        /// <param name="loader"></param>
         /// <param name="sharedOpts"></param>
-        public MQTTLiason(ILogger<MQTTLiason> logger, IMQTTGenerator generator, IFirmwareDAO loader, IOptions<SharedOpts> sharedOpts)
+        public MQTTLiason(ILogger<MQTTLiason> logger, IMQTTGenerator generator, IFirmwareDAO loader, IOptions<SharedOpts> sharedOpts) :
+            base(logger, generator, sharedOpts)
         {
-            this.Logger = logger;
-            this.Generator = generator;
             this.Loader = loader;
             this.AutoIDEnabled = sharedOpts.Value.AutoIDEnabled;
             this.NextID = sharedOpts.Value.NextID;
@@ -118,16 +120,6 @@ namespace Mysb.Liasons
         /// <inheritdoc />
         public IEnumerable<(string slug, string sensor, string type, MQTTDiscovery discovery)> Discoveries() =>
             new List<(string slug, string sensor, string type, MQTTDiscovery discovery)>();
-
-        /// <summary>
-        /// The logger used internally.
-        /// </summary>
-        private readonly ILogger<MQTTLiason> Logger;
-
-        /// <summary>
-        /// The MQTT generator used for things such as availability topic, state topic, command topic, etc.
-        /// </summary>
-        private IMQTTGenerator Generator;
 
         /// <summary>
         /// The firmware loader that loads firmware from disk.
