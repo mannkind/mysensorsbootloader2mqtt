@@ -9,6 +9,7 @@ using Mysb.Liasons;
 using TwoMQTT.Core;
 using TwoMQTT.Core.Extensions;
 using TwoMQTT.Core.Interfaces;
+using TwoMQTT.Core.Managers;
 using TwoMQTT.Core.Utils;
 
 namespace Mysb
@@ -33,7 +34,18 @@ namespace Mysb
                 })
                 .AddSingleton<IFirmwareDAO, FirmwareDAO>(x =>
                 {
+                    var logger = x.GetService<ILogger<FirmwareDAO>>();
                     var opts = x.GetService<IOptions<Models.Options.SharedOpts>>();
+
+                    if (logger == null)
+                    {
+                        throw new ArgumentException($"{nameof(logger)} is required for {nameof(FirmwareDAO)}.");
+                    }
+                    if (opts == null)
+                    {
+                        throw new ArgumentException($"{nameof(opts.Value.FirmwareBasePath)} and {nameof(opts.Value.Resources)} are required for {nameof(FirmwareDAO)}.");
+                    }
+
                     return new FirmwareDAO(x.GetService<ILogger<FirmwareDAO>>(),
                         opts.Value.FirmwareBasePath, opts.Value.Resources);
                 });
