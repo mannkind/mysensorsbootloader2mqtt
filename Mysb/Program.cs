@@ -46,8 +46,7 @@ namespace Mysb
                         throw new ArgumentException($"{nameof(opts.Value.FirmwareBasePath)} and {nameof(opts.Value.Resources)} are required for {nameof(FirmwareDAO)}.");
                     }
 
-                    return new FirmwareDAO(x.GetService<ILogger<FirmwareDAO>>(),
-                        opts.Value.FirmwareBasePath, opts.Value.Resources);
+                    return new FirmwareDAO(logger, opts.Value.FirmwareBasePath, opts.Value.Resources);
                 });
         }
     }

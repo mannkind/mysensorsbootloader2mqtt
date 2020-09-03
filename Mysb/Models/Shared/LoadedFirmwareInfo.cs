@@ -3,25 +3,25 @@ namespace Mysb.Models.Shared
     /// <summary>
     /// 
     /// </summary>
-    public class LoadedFirmwareInfo
+    public record LoadedFirmwareInfo
     {
         /// <summary>
         /// 
         /// </summary>
         /// <value></value>
-        public ushort Type { get; set; }
+        public ushort Type { get; init; }
 
         /// <summary>
         /// 
         /// </summary>
         /// <value></value>
-        public ushort Version { get; set; }
+        public ushort Version { get; init; }
 
         /// <summary>
         /// 
         /// </summary>
         /// <value></value>
-        public string Path { get; set; } = string.Empty;
+        public string Path { get; init; } = string.Empty;
 
     }
 }

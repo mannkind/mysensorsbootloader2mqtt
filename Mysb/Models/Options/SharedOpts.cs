@@ -7,7 +7,7 @@ namespace Mysb.Models.Options
     /// <summary>
     /// The shared options across the application
     /// </summary>
-    public class SharedOpts : ISharedOpts<NodeFirmwareInfoMapping>
+    public record SharedOpts : ISharedOpts<NodeFirmwareInfoMapping>
     {
         public const string Section = "Mysb";
 

@@ -6,26 +6,26 @@ namespace Mysb.Models.Shared
     /// <summary>
     /// 
     /// </summary>
-    public class Firmware
+    public record Firmware
     {
         /// <summary>
         /// 
         /// </summary>
         /// <value></value>
-        public ushort Blocks { get; set; }
+        public ushort Blocks { get; init; }
 
         /// <summary>
         /// 
         /// </summary>
         /// <value></value>
-        public ushort Crc { get; set; }
+        public ushort Crc { get; init; }
 
         /// <summary>
         /// 
         /// </summary>
         /// <typeparam name="byte"></typeparam>
         /// <returns></returns>
-        public IEnumerable<byte> Data { get; set; } = new List<byte>();
+        public IEnumerable<byte> Data { get; init; } = new List<byte>();
 
         /// <summary>
         /// 
