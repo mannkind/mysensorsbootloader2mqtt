@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -18,6 +20,9 @@ namespace Mysb.Liasons
             base(logger, new object { }, sharedOpts)
         {
         }
+
+        public new IAsyncEnumerable<object?> FetchAllAsync(CancellationToken cancellationToken = default) =>
+            AsyncEnumerable.Empty<object?>();
 
         protected override Task<object?> FetchOneAsync(NodeFirmwareInfoMapping key, CancellationToken cancellationToken) =>
             Task.FromResult<object?>(null);

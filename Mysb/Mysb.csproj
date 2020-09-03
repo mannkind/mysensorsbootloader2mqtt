@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <PackageReference Include="IntelHexFormatReader" Version="2.2.3" />
+    <PackageReference Include="System.Linq.Async" Version="4.1.1" />
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="3.1.0" />
     <PackageReference Include="twomqtt" Version="0.8.*" />
   </ItemGroup>
