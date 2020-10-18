@@ -331,17 +331,15 @@ namespace Mysb.DataAccess
                 path = this.PathToFirmware(fw?.Type, fw?.Version);
             }
 
-            // Unable to load the firmware
-            if (fw == null)
+            return fw switch 
             {
-                return null;
-            }
-
-            return new LoadedFirmwareInfo
-            {
-                Type = fw.Type,
-                Version = fw.Version,
-                Path = $"{this.FirmwareBasePath}/{fw.Type}/{fw.Version}/firmware.hex",
+                NodeFirmwareInfoMapping => new LoadedFirmwareInfo
+                {
+                    Type = fw.Type,
+                    Version = fw.Version,
+                    Path = $"{this.FirmwareBasePath}/{fw.Type}/{fw.Version}/firmware.hex",
+                },
+                _ => null
             };
         }
 
