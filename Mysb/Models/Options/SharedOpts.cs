@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using Mysb.Models.Shared;
-using TwoMQTT.Core.Interfaces;
+using TwoMQTT.Interfaces;
 
 namespace Mysb.Models.Options
 {

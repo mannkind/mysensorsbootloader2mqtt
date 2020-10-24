@@ -6,8 +6,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Mysb.Models.Options;
 using Mysb.Models.Shared;
-using TwoMQTT.Core.Interfaces;
-using TwoMQTT.Core.Liasons;
+using TwoMQTT.Interfaces;
+using TwoMQTT.Liasons;
 
 namespace Mysb.Liasons
 {

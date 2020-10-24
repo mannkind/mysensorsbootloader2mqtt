@@ -1,4 +1,4 @@
-using TwoMQTT.Core.Models;
+using TwoMQTT.Models;
 
 namespace Mysb.Models.Options
 {
