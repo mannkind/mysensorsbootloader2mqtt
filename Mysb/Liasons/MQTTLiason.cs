@@ -9,10 +9,10 @@ using MQTTnet.Extensions.ManagedClient;
 using Mysb.DataAccess;
 using Mysb.Models.Options;
 using Mysb.Models.Shared;
-using TwoMQTT.Core.Interfaces;
-using TwoMQTT.Core.Liasons;
-using TwoMQTT.Core.Models;
-using TwoMQTT.Core.Utils;
+using TwoMQTT.Interfaces;
+using TwoMQTT.Liasons;
+using TwoMQTT.Models;
+using TwoMQTT.Utils;
 
 namespace Mysb.Liasons
 {

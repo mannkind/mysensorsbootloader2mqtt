@@ -1,11 +1,11 @@
-using TwoMQTT.Core.Models;
+using TwoMQTT.Models;
 
 namespace Mysb.Models.Options
 {
     /// <summary>
     /// The sink options
     /// </summary>
-    public class MQTTOpts : MQTTManagerOptions
+    public record MQTTOpts : MQTTManagerOptions
     {
         public const string Section = "Mysb:MQTT";
 

@@ -6,11 +6,11 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Mysb.DataAccess;
 using Mysb.Liasons;
-using TwoMQTT.Core;
-using TwoMQTT.Core.Extensions;
-using TwoMQTT.Core.Interfaces;
-using TwoMQTT.Core.Managers;
-using TwoMQTT.Core.Utils;
+using TwoMQTT;
+using TwoMQTT.Extensions;
+using TwoMQTT.Interfaces;
+using TwoMQTT.Managers;
+using TwoMQTT.Utils;
 
 namespace Mysb
 {
@@ -27,7 +27,7 @@ namespace Mysb
             return services
                 .ConfigureOpts<Models.Options.SharedOpts>(hostContext, Models.Options.SharedOpts.Section)
                 .ConfigureOpts<Models.Options.MQTTOpts>(hostContext, Models.Options.MQTTOpts.Section)
-                .ConfigureOpts<TwoMQTT.Core.Models.MQTTManagerOptions>(hostContext, Models.Options.MQTTOpts.Section)
+                .ConfigureOpts<TwoMQTT.Models.MQTTManagerOptions>(hostContext, Models.Options.MQTTOpts.Section)
                 .AddSingleton<IThrottleManager, ThrottleManager>(x =>
                 {
                     return new ThrottleManager(TimeSpan.MaxValue);
@@ -46,8 +46,7 @@ namespace Mysb
                         throw new ArgumentException($"{nameof(opts.Value.FirmwareBasePath)} and {nameof(opts.Value.Resources)} are required for {nameof(FirmwareDAO)}.");
                     }
 
-                    return new FirmwareDAO(x.GetService<ILogger<FirmwareDAO>>(),
-                        opts.Value.FirmwareBasePath, opts.Value.Resources);
+                    return new FirmwareDAO(logger, opts.Value.FirmwareBasePath, opts.Value.Resources);
                 });
         }
     }
