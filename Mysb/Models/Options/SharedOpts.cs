@@ -46,6 +46,6 @@ namespace Mysb.Models.Options
         /// </summary>
         /// <typeparam name="NodeFirmwareInfoMapping"></typeparam>
         /// <returns></returns>
-        public List<NodeFirmwareInfoMapping> Resources { get; init; } = new List<NodeFirmwareInfoMapping>();
+        public List<NodeFirmwareInfoMapping> Resources { get; init; } = new();
     }
 }
