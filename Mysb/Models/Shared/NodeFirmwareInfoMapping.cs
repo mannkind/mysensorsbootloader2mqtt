@@ -24,8 +24,5 @@ namespace Mysb.Models.Shared
         /// </summary>
         /// <value></value>
         public ushort Version { get; init; } = 1;
-
-        /// <inheritdoc />
-        public override string ToString() => $"NodeId: {this.NodeId}, Type: {this.Type}, Version: {this.Version}";
     }
 }

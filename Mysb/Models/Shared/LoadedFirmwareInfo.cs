@@ -22,6 +22,5 @@ namespace Mysb.Models.Shared
         /// </summary>
         /// <value></value>
         public string Path { get; init; } = string.Empty;
-
     }
 }
