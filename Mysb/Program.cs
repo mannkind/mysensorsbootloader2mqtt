@@ -26,7 +26,7 @@ namespace Mysb
                         .AddOptions<TwoMQTT.Models.MQTTManagerOptions>(Models.Options.MQTTOpts.Section, context.Configuration)
                         .AddSingleton<IThrottleManager, ThrottleManager>(x =>
                         {
-                            return new ThrottleManager(TimeSpan.MaxValue);
+                            return new ThrottleManager(System.Threading.Timeout.InfiniteTimeSpan);
                         })
                         .AddSingleton<IFirmwareDAO, FirmwareDAO>(x =>
                         {
