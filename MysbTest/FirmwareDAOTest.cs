@@ -1,26 +1,26 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Mysb.Models.Shared;
-using Mysb.DataAccess;
-using System.Threading.Tasks;
 using System.Collections.Generic;
-using System.Threading;
-using Microsoft.Extensions.Options;
-using System.Linq;
 using System.IO;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
+using Mysb.DataAccess;
 using Mysb.Models.Options;
+using Mysb.Models.Shared;
 
-namespace MysbTest
+namespace MysbTest;
+
+[TestClass]
+public class FirmwareDAOTest
 {
-    [TestClass]
-    public class FirmwareDAOTest
+    [TestMethod]
+    public async Task FirmwareConfigAsyncTest()
     {
-        [TestMethod]
-        public async Task FirmwareConfigAsyncTest()
+        var tests = new[]
         {
-            var tests = new[]
-            {
                 new
                 {
                     Payload = "010001005000D446",
@@ -29,25 +29,25 @@ namespace MysbTest
                 }
             };
 
-            foreach (var test in tests)
-            {
-                var logger = new Mock<ILogger<ExposedFirmwareDAO>>().Object;
-                var opts = Options.Create(new SharedOpts
-                {
-                    Resources = new List<NodeFirmwareInfoMapping> { test.Node },
-                    FirmwareBasePath = Const.TestFilesBasePath,
-                });
-                var dao = new ExposedFirmwareDAO(logger, opts);
-                var actual = await dao.FirmwareConfigAsync(string.Empty, test.Payload);
-                Assert.AreEqual(test.Expected, actual);
-            }
-        }
-
-        [TestMethod]
-        public async Task FirmwareAsyncTest()
+        foreach (var test in tests)
         {
-            var tests = new[]
+            var logger = new Mock<ILogger<ExposedFirmwareDAO>>().Object;
+            var opts = Options.Create(new SharedOpts
             {
+                Resources = new List<NodeFirmwareInfoMapping> { test.Node },
+                FirmwareBasePath = Const.TestFilesBasePath,
+            });
+            var dao = new ExposedFirmwareDAO(logger, opts);
+            var actual = await dao.FirmwareConfigAsync(string.Empty, test.Payload);
+            Assert.AreEqual(test.Expected, actual);
+        }
+    }
+
+    [TestMethod]
+    public async Task FirmwareAsyncTest()
+    {
+        var tests = new[]
+        {
                 new
                 {
                     Payload = "010001000100",
@@ -62,25 +62,25 @@ namespace MysbTest
                 }
             };
 
-            foreach (var test in tests)
-            {
-                var logger = new Mock<ILogger<ExposedFirmwareDAO>>().Object;
-                var opts = Options.Create(new SharedOpts
-                {
-                    Resources = new List<NodeFirmwareInfoMapping> { test.Node },
-                    FirmwareBasePath = Const.TestFilesBasePath,
-                });
-                var dao = new ExposedFirmwareDAO(logger, opts);
-                var actual = await dao.FirmwareAsync(string.Empty, test.Payload);
-                Assert.AreEqual(test.Expected, actual);
-            }
-        }
-
-        [TestMethod]
-        public async Task LoadFromFileAsyncTest()
+        foreach (var test in tests)
         {
-            var tests = new[]
+            var logger = new Mock<ILogger<ExposedFirmwareDAO>>().Object;
+            var opts = Options.Create(new SharedOpts
             {
+                Resources = new List<NodeFirmwareInfoMapping> { test.Node },
+                FirmwareBasePath = Const.TestFilesBasePath,
+            });
+            var dao = new ExposedFirmwareDAO(logger, opts);
+            var actual = await dao.FirmwareAsync(string.Empty, test.Payload);
+            Assert.AreEqual(test.Expected, actual);
+        }
+    }
+
+    [TestMethod]
+    public async Task LoadFromFileAsyncTest()
+    {
+        var tests = new[]
+        {
                 new
                 {
                     Path = $"{Const.TestFilesBasePath}/1/1/firmware.hex",
@@ -95,62 +95,62 @@ namespace MysbTest
                 }
             };
 
-            foreach (var test in tests)
-            {
-                var logger = new Mock<ILogger<ExposedFirmwareDAO>>().Object;
-                var opts = Options.Create(new SharedOpts
-                {
-                    FirmwareBasePath = Const.TestFilesBasePath,
-                });
-                var dao = new ExposedFirmwareDAO(logger, opts);
-                var firmware = await dao.LoadFromFileTestAsync(test.Path);
-
-                Assert.AreEqual(test.ExpectedBlocks, firmware.Blocks);
-                Assert.AreEqual(test.ExpectedCrc, firmware.Crc);
-            }
-        }
-
-        [TestMethod]
-        public async Task LoadFromFileContentAsyncTest()
+        foreach (var test in tests)
         {
-            var tests = new[]
+            var logger = new Mock<ILogger<ExposedFirmwareDAO>>().Object;
+            var opts = Options.Create(new SharedOpts
             {
+                FirmwareBasePath = Const.TestFilesBasePath,
+            });
+            var dao = new ExposedFirmwareDAO(logger, opts);
+            var firmware = await dao.LoadFromFileTestAsync(test.Path);
+
+            Assert.AreEqual(test.ExpectedBlocks, firmware.Blocks);
+            Assert.AreEqual(test.ExpectedCrc, firmware.Crc);
+        }
+    }
+
+    [TestMethod]
+    public async Task LoadFromFileContentAsyncTest()
+    {
+        var tests = new[]
+        {
                 new { Type = 1, Blocks = 80, Path = $"{Const.TestFilesBasePath}/1/1/firmware.encoded" },
                 new { Type = 11, Blocks = 1072, Path = $"{Const.TestFilesBasePath}/11/1/firmware.encoded" }
             };
 
-            foreach (var test in tests)
+        foreach (var test in tests)
+        {
+            var logger = new Mock<ILogger<ExposedFirmwareDAO>>().Object;
+            var opts = Options.Create(new SharedOpts
             {
-                var logger = new Mock<ILogger<ExposedFirmwareDAO>>().Object;
-                var opts = Options.Create(new SharedOpts
+                FirmwareBasePath = Const.TestFilesBasePath,
+            });
+            var dao = new ExposedFirmwareDAO(logger, opts);
+            var lines = await File.ReadAllLinesAsync(test.Path);
+            foreach (var blockNo in Enumerable.Range(0, test.Blocks))
+            {
+                var lineNo = test.Blocks - blockNo - 1;
+                var payload = dao.PackTest(new FirmwareReqResp
                 {
-                    FirmwareBasePath = Const.TestFilesBasePath,
+                    Type = (ushort)test.Type,
+                    Version = 1,
+                    Block = (ushort)blockNo,
                 });
-                var dao = new ExposedFirmwareDAO(logger, opts);
-                var lines = await File.ReadAllLinesAsync(test.Path);
-                foreach (var blockNo in Enumerable.Range(0, test.Blocks))
-                {
-                    var lineNo = test.Blocks - blockNo - 1;
-                    var payload = dao.PackTest(new FirmwareReqResp
-                    {
-                        Type = (ushort)test.Type,
-                        Version = 1,
-                        Block = (ushort)blockNo,
-                    });
 
-                    var actual = await dao.FirmwareAsync(string.Empty, payload);
-                    var expected = lines[lineNo];
+                var actual = await dao.FirmwareAsync(string.Empty, payload);
+                var expected = lines[lineNo];
 
-                    Assert.AreEqual(expected, actual, $"Type: {test.Type}, Line: {lineNo}, Block: {blockNo}");
-                }
+                Assert.AreEqual(expected, actual, $"Type: {test.Type}, Line: {lineNo}, Block: {blockNo}");
             }
         }
+    }
 
-        [TestMethod]
-        public void BootloaderTest()
+    [TestMethod]
+    public void BootloaderTest()
+    {
+        var tests = new[]
         {
-            var tests = new[]
-            {
                 new
                 {
                     Description = "Erase EEPROM",
@@ -174,30 +174,29 @@ namespace MysbTest
                 },
             };
 
-            foreach (var test in tests)
-            {
-                var logger = new Mock<ILogger<ExposedFirmwareDAO>>().Object;
-                var opts = Options.Create(new SharedOpts
-                {
-                    FirmwareBasePath = Const.TestFilesBasePath,
-                });
-                var dao = new ExposedFirmwareDAO(logger, opts);
-                var (_, actual) = dao.BootloaderCommand(test.Topic, test.Payload);
-                Assert.AreEqual(test.Expected, actual, test.Description);
-            }
-        }
-    }
-
-    public class ExposedFirmwareDAO : FirmwareDAO
-    {
-        public ExposedFirmwareDAO(ILogger<ExposedFirmwareDAO> logger, IOptions<SharedOpts> sharedOpts) :
-            base(logger, sharedOpts.Value.FirmwareBasePath, sharedOpts.Value.Resources)
+        foreach (var test in tests)
         {
+            var logger = new Mock<ILogger<ExposedFirmwareDAO>>().Object;
+            var opts = Options.Create(new SharedOpts
+            {
+                FirmwareBasePath = Const.TestFilesBasePath,
+            });
+            var dao = new ExposedFirmwareDAO(logger, opts);
+            var (_, actual) = dao.BootloaderCommand(test.Topic, test.Payload);
+            Assert.AreEqual(test.Expected, actual, test.Description);
         }
-
-        public Task<Firmware> LoadFromFileTestAsync(string path, CancellationToken cancellationToken = default) =>
-            this.LoadFromFileAsync(path, cancellationToken);
-
-        public string PackTest<T>(T obj) where T : struct => this.Pack(obj);
     }
+}
+
+public class ExposedFirmwareDAO : FirmwareDAO
+{
+    public ExposedFirmwareDAO(ILogger<ExposedFirmwareDAO> logger, IOptions<SharedOpts> sharedOpts) :
+        base(logger, sharedOpts.Value.FirmwareBasePath, sharedOpts.Value.Resources)
+    {
+    }
+
+    public Task<Firmware> LoadFromFileTestAsync(string path, CancellationToken cancellationToken = default) =>
+        this.LoadFromFileAsync(path, cancellationToken);
+
+    public string PackTest<T>(T obj) where T : struct => this.Pack(obj);
 }
