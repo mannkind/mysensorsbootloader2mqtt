@@ -9,22 +9,21 @@ using Mysb.Models.Shared;
 using TwoMQTT.Interfaces;
 using TwoMQTT.Liasons;
 
-namespace Mysb.Liasons
+namespace Mysb.Liasons;
+
+/// <summary>
+/// I'm just here so I won't be fined.
+/// </summary>
+public class SourceLiason : PollingSourceLiasonBase<object, NodeFirmwareInfoMapping, object, SharedOpts>, ISourceLiason<object, object>
 {
-    /// <summary>
-    /// I'm just here so I won't be fined.
-    /// </summary>
-    public class SourceLiason : SourceLiasonBase<object, object, NodeFirmwareInfoMapping, object, SharedOpts>, ISourceLiason<object, object>
+    public SourceLiason(ILogger<SourceLiason> logger, IOptions<Models.Options.SharedOpts> sharedOpts) :
+        base(logger, new object { }, sharedOpts)
     {
-        public SourceLiason(ILogger<SourceLiason> logger, IOptions<Models.Options.SharedOpts> sharedOpts) :
-            base(logger, new object { }, sharedOpts)
-        {
-        }
-
-        public new IAsyncEnumerable<object?> FetchAllAsync(CancellationToken cancellationToken = default) =>
-            AsyncEnumerable.Empty<object?>();
-
-        protected override Task<object?> FetchOneAsync(NodeFirmwareInfoMapping key, CancellationToken cancellationToken) =>
-            Task.FromResult<object?>(null);
     }
+
+    public override IAsyncEnumerable<object?> ReceiveDataAsync(CancellationToken cancellationToken = default) =>
+        AsyncEnumerable.Empty<object?>();
+
+    protected override Task<object?> FetchOneAsync(NodeFirmwareInfoMapping key, CancellationToken cancellationToken) =>
+        Task.FromResult<object?>(null);
 }

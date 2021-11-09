@@ -1,10 +1,9 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace MysbTest
+namespace MysbTest;
+
+[TestClass]
+public class Const
 {
-    [TestClass]
-    public class Const
-    {
-        public const string TestFilesBasePath = "../../../test_files";
-    }
+    public const string TestFilesBasePath = "../../../test_files";
 }
